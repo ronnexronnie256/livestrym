@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Livestrym — Sign Up Free</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #060a12;
+  color: #e0e8ff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+a { color: #6ba3ff; text-decoration: none; }
+a:hover { color: white; }
+
+/* Nav */
+nav {
+  padding: 0 6%;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(47,124,246,0.1);
+  background: rgba(6,10,18,0.95);
+}
+.nav-logo {
+  font-family: 'Sora', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+.nav-logo-icon {
+  width: 30px; height: 30px;
+  background: #2f7cf6;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+}
+
+/* Layout */
+.page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.card {
+  background: #0d1421;
+  border: 1px solid rgba(47,124,246,0.15);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 0 60px rgba(47,124,246,0.08);
+}
+
+.card-header { margin-bottom: 28px; }
+.card-header h1 {
+  font-family: 'Sora', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 6px;
+}
+.card-header p { font-size: 14px; color: #6b7a99; line-height: 1.5; }
+
+/* Form */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #6b7a99;
+  margin-bottom: 6px;
+}
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 11px 14px;
+  background: #060a12;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #e0e8ff;
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color .2s;
+}
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #2f7cf6;
+}
+.form-group input::placeholder { color: #3a4a62; }
+.form-group select option { background: #0d1421; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* Type selector */
+.type-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.type-option {
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all .2s;
+  text-align: center;
+}
+.type-option:hover { border-color: rgba(47,124,246,0.4); }
+.type-option.selected {
+  border-color: #2f7cf6;
+  background: rgba(47,124,246,0.08);
+}
+.type-option input { display: none; }
+.type-icon { font-size: 20px; margin-bottom: 4px; }
+.type-label { font-size: 13px; font-weight: 600; color: white; }
+.type-desc { font-size: 11px; color: #6b7a99; margin-top: 2px; }
+
+/* Submit */
+.btn-submit {
+  width: 100%;
+  padding: 13px;
+  background: #2f7cf6;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  font-family: 'Sora', sans-serif;
+  cursor: pointer;
+  transition: all .2s;
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-submit:hover { background: #1a5fd4; }
+.btn-submit:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+  display: none;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Alerts */
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.alert-error {
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.3);
+  color: #fca5a5;
+}
+.alert-success {
+  background: rgba(16,185,129,0.1);
+  border: 1px solid rgba(16,185,129,0.3);
+  color: #6ee7b7;
+}
+.alert-info {
+  background: rgba(47,124,246,0.08);
+  border: 1px solid rgba(47,124,246,0.2);
+  color: #93c5fd;
+}
+
+/* Footer note */
+.card-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 13px;
+  color: #6b7a99;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: #3a4a62;
+  font-size: 12px;
+}
+.divider::before, .divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+}
+
+/* Success state */
+.success-state {
+  text-align: center;
+  padding: 20px 0;
+  display: none;
+}
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+.success-state h2 {
+  font-family: 'Sora', sans-serif;
+  font-size: 20px;
+  color: white;
+  margin-bottom: 8px;
+}
+.success-state p { font-size: 14px; color: #6b7a99; line-height: 1.6; }
+
+.benefits {
+  background: rgba(47,124,246,0.05);
+  border: 1px solid rgba(47,124,246,0.1);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.benefit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #8a9bb8;
+  padding: 3px 0;
+}
+.benefit-icon { color: #10b981; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">🛡</div>
+    Livestrym
+  </a>
+  <a href="/dashboard/login" style="font-size:13px;color:#6b7a99">Already have an account? Sign in</a>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <!-- Form state -->
+    <div id="form-state">
+      <div class="card-header">
+        <h1>Start protecting your streams</h1>
+        <p>Free for ministries. Set up in under 2 minutes. No credit card required.</p>
+      </div>
+
+      <div class="benefits">
+        <div class="benefit"><span class="benefit-icon">✓</span> Detects rebroadcasts in 60 seconds</div>
+        <div class="benefit"><span class="benefit-icon">✓</span> Instant Telegram alerts</div>
+        <div class="benefit"><span class="benefit-icon">✓</span> Free for ministry accounts</div>
+      </div>
+
+      <div id="alert-box"></div>
+
+      <form id="signup-form" onsubmit="handleSubmit(event)">
+
+        <!-- Account type -->
+        <div class="form-group">
+          <label>Account type</label>
+        </div>
+        <div class="type-selector">
+          <label class="type-option selected" onclick="selectType('ministry', this)">
+            <input type="radio" name="account_type" value="ministry" checked>
+            <div class="type-icon">⛪</div>
+            <div class="type-label">Ministry</div>
+            <div class="type-desc">Free forever</div>
+          </label>
+          <label class="type-option" onclick="selectType('business', this)">
+            <input type="radio" name="account_type" value="business">
+            <div class="type-icon">🏢</div>
+            <div class="type-label">Business</div>
+            <div class="type-desc">From $9/mo</div>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First name</label>
+            <input type="text" id="first_name" placeholder="Agaba" required>
+          </div>
+          <div class="form-group">
+            <label>Last name</label>
+            <input type="text" id="last_name" placeholder="Ronald" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Organization name</label>
+          <input type="text" id="org_name" placeholder="Phaneroo Ministries International" required>
+        </div>
+
+        <div class="form-group">
+          <label>Email address</label>
+          <input type="email" id="email" placeholder="you@ministry.org" required>
+        </div>
+
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="At least 8 characters" minlength="8" required>
+        </div>
+
+        <div class="form-group">
+          <label>YouTube channel URL</label>
+          <input type="url" id="channel_url"
+            placeholder="https://www.youtube.com/@yourchannel" required>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submit-btn">
+          <span id="btn-text">Create free account →</span>
+          <div class="spinner" id="spinner"></div>
+        </button>
+
+      </form>
+
+      <div class="card-footer">
+        By signing up you agree to our
+        <a href="/terms">Terms of Service</a> and
+        <a href="/privacy">Privacy Policy</a>
+      </div>
+    </div>
+
+    <!-- Success state -->
+    <div class="success-state" id="success-state">
+      <div class="success-icon">✅</div>
+      <h2 id="success-title">Account created!</h2>
+      <p id="success-message"></p>
+      <br>
+      <a href="/dashboard/login"
+         style="display:inline-block;margin-top:16px;padding:12px 28px;background:#2f7cf6;color:white;border-radius:8px;font-family:'Sora',sans-serif;font-weight:600;font-size:14px">
+        Sign in to your account →
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+let selectedType = 'ministry';
+
+function selectType(type, el) {
+  selectedType = type;
+  document.querySelectorAll('.type-option').forEach(o => o.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function showAlert(message, type = 'error') {
+  const box = document.getElementById('alert-box');
+  box.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+}
+
+function clearAlert() {
+  document.getElementById('alert-box').innerHTML = '';
+}
+
+async function handleSubmit(e) {
+  e.preventDefault();
+  clearAlert();
+
+  const firstName   = document.getElementById('first_name').value.trim();
+  const lastName    = document.getElementById('last_name').value.trim();
+  const orgName     = document.getElementById('org_name').value.trim();
+  const email       = document.getElementById('email').value.trim();
+  const password    = document.getElementById('password').value;
+  const channelUrl  = document.getElementById('channel_url').value.trim();
+
+  if (!channelUrl.includes('youtube.com') && !channelUrl.includes('youtu.be')) {
+    showAlert('Please enter a valid YouTube channel URL (e.g. https://www.youtube.com/@yourchannel)');
+    return;
+  }
+
+  if (password.length < 8) {
+    showAlert('Password must be at least 8 characters.');
+    return;
+  }
+
+  // Loading state
+  const btn      = document.getElementById('submit-btn');
+  const btnText  = document.getElementById('btn-text');
+  const spinner  = document.getElementById('spinner');
+  btn.disabled   = true;
+  btnText.textContent = 'Creating account...';
+  spinner.style.display = 'block';
+
+  try {
+    const response = await fetch('/api/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        full_name:    `${firstName} ${lastName}`,
+        email:        email,
+        password:     password,
+        org_name:     orgName,
+        channel_url:  channelUrl,
+        account_type: selectedType,
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      showAlert(data.detail || 'Something went wrong. Please try again.');
+      return;
+    }
+
+    // Show success state
+    document.getElementById('form-state').style.display = 'none';
+    const successState = document.getElementById('success-state');
+    successState.style.display = 'block';
+
+    if (data.next === 'login') {
+      document.getElementById('success-title').textContent = 'Account approved!';
+      document.getElementById('success-message').textContent =
+        'Your channel has been verified and your account is ready. Sign in to start protecting your streams.';
+    } else {
+      document.getElementById('success-title').textContent = 'Account under review';
+      document.getElementById('success-message').textContent =
+        'We are reviewing your channel and will send you an email within 48 hours. Thank you for signing up for Livestrym.';
+    }
+
+  } catch (err) {
+    showAlert('Network error. Please check your connection and try again.');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Create free account →';
+    spinner.style.display = 'none';
+  }
+}
+</script>
+
+</body>
+</html>
