@@ -14,3 +14,4 @@ Pillow>=10.0.0
 soundfile>=0.12.1
 google-api-python-client==2.118.0
 sendgrid==6.11.0
+email-validator==2.2.0
