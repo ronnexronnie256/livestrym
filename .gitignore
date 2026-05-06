@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+livestrym.db
+*.db
+logs/
+data/
+.DS_Store
+dist/
+build/
+*.egg-info/
