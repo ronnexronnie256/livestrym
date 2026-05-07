@@ -506,8 +506,19 @@ def website():
 
 @app.get("/signup", response_class=HTMLResponse)
 def signup_page():
-    web_path = os.path.join(os.path.dirname(__file__), "..", "web", "signup.html")
-    if os.path.exists(web_path):
-        with open(web_path, encoding="utf-8") as f:
+    return _serve_web("signup.html")
+
+@app.get("/dashboard/login", response_class=HTMLResponse)
+def login_page():
+    return _serve_web("login.html")
+
+@app.get("/dashboard", response_class=HTMLResponse)
+def dashboard_page():
+    return _serve_web("dashboard.html")
+
+def _serve_web(filename: str) -> str:
+    path = os.path.join(os.path.dirname(__file__), "..", "web", filename)
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
             return f.read()
-    return "<h1>Signup — coming soon</h1>"
+    return f"<h1>{filename} — coming soon</h1>"
