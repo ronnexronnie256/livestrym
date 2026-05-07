@@ -3,249 +3,111 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Livestrym — Dashboard</title>
+<title>Livestrym — Sign In</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'DM Sans',sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100vh;display:flex}
-a{color:#4d9de0;text-decoration:none}
-
-/* Sidebar */
-.sidebar{width:220px;background:#111827;border-right:1px solid #1f2937;position:fixed;height:100vh;display:flex;flex-direction:column;z-index:100}
-.sidebar-logo{padding:20px 18px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;background:#2f7cf6;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
-.logo-text h2{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:white}
-.logo-text span{font-size:10px;color:#6b7280}
-.user-box{padding:14px 18px;border-bottom:1px solid #1f2937}
-.user-avatar{width:34px;height:34px;border-radius:50%;background:#0f1f3d;border:2px solid #2f7cf6;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#4d9de0;float:left;margin-right:10px}
-.user-name{font-size:13px;font-weight:600;color:white;padding-top:2px}
-.user-tier{font-size:10px;background:#0f1f3d;color:#4d9de0;padding:2px 7px;border-radius:8px;display:inline-block;margin-top:3px;font-weight:600}
-.sidebar-nav{flex:1;padding:10px 0}
-.nav-item{display:flex;align-items:center;padding:10px 18px;color:#9ca3af;font-size:13px;gap:10px;border-left:3px solid transparent;cursor:pointer;text-decoration:none}
-.nav-item:hover,.nav-item.active{background:#1f2937;color:white;border-left-color:#2f7cf6}
-.nav-icon{font-size:15px;width:20px;text-align:center}
-.sidebar-footer{padding:14px 18px;border-top:1px solid #1f2937}
-
-/* Main */
-.main{margin-left:220px;flex:1;min-height:100vh}
-.topbar{background:#111827;border-bottom:1px solid #1f2937;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
-.topbar-title{font-size:15px;font-weight:700;color:white;font-family:'Sora',sans-serif}
-.content{padding:24px}
-.page-title{font-size:18px;font-weight:700;color:white;font-family:'Sora',sans-serif;margin-bottom:4px}
-.page-sub{font-size:13px;color:#6b7280;margin-bottom:22px}
-
-/* Stats */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
-.stat{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:18px}
-.stat-icon{font-size:22px;margin-bottom:8px}
-.stat-num{font-size:26px;font-weight:700;color:white;font-family:'Sora',sans-serif}
-.stat-label{font-size:11px;color:#6b7280;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
-
-/* Card */
-.card{background:#111827;border:1px solid #1f2937;border-radius:10px;overflow:hidden;margin-bottom:18px}
-.card-header{padding:14px 18px;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between}
-.card-header h3{font-size:13px;font-weight:700;color:white;font-family:'Sora',sans-serif}
-
-/* Table */
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{padding:10px 14px;color:#6b7280;font-weight:normal;text-align:left;border-bottom:1px solid #1f2937;font-size:11px;text-transform:uppercase;letter-spacing:.4px;background:#0d1421}
-td{padding:11px 14px;border-bottom:1px solid #0f1623;vertical-align:middle;color:#e0e0e0}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:#151f2e}
-
-/* Badges */
-.badge{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
-.b-free{background:#0f1f3d;color:#4d9de0}
-.b-pro{background:#052e1c;color:#10b981}
-.b-business{background:#2d1f00;color:#f59e0b}
-
-/* Buttons */
-.btn{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
-.btn-blue{background:#2f7cf6;color:#fff}
-.btn-gray{background:#1f2937;color:#9ca3af;border:1px solid #374151}
-.btn-sm{padding:4px 10px;font-size:11px}
-
-/* Conf */
-.conf-high{color:#ef4444;font-weight:700}
-.conf-mid{color:#f59e0b;font-weight:700}
-
-/* Empty */
-.empty{color:#374151;text-align:center;padding:40px;font-size:13px}
-
-/* Status */
-.status-live{display:flex;align-items:center;gap:6px;font-size:12px;color:#10b981}
-.status-offline{display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280}
-.dot{width:7px;height:7px;border-radius:50%}
-.dot-live{background:#10b981;animation:pulse 2s infinite}
-.dot-offline{background:#6b7280}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* Upgrade banner */
-.upgrade-banner{background:linear-gradient(135deg,#0f1f3d,#1a0a2d);border:1px solid #1f3a6e;border-radius:10px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
-.upgrade-banner h3{font-size:14px;color:white;margin-bottom:3px;font-family:'Sora',sans-serif}
-.upgrade-banner p{font-size:12px;color:#6b7280}
-
-/* Loading */
-.loading{text-align:center;padding:60px;color:#374151;font-size:14px}
+body{font-family:'DM Sans',sans-serif;background:#060a12;color:#e0e8ff;min-height:100vh;display:flex;flex-direction:column}
+a{color:#6ba3ff;text-decoration:none}
+nav{padding:0 6%;height:60px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(47,124,246,0.1);background:rgba(6,10,18,0.95)}
+.nav-logo{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;color:white;display:flex;align-items:center;gap:8px;text-decoration:none}
+.nav-logo-icon{width:30px;height:30px;background:#2f7cf6;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.page{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px}
+.card{background:#0d1421;border:1px solid rgba(47,124,246,0.15);border-radius:16px;padding:40px;width:100%;max-width:420px;box-shadow:0 0 60px rgba(47,124,246,0.08)}
+.card h1{font-family:'Sora',sans-serif;font-size:22px;font-weight:700;color:white;margin-bottom:6px}
+.card p{font-size:14px;color:#6b7a99;margin-bottom:28px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:#6b7a99;margin-bottom:6px}
+.form-group input{width:100%;padding:11px 14px;background:#060a12;border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#e0e8ff;font-size:14px;font-family:'DM Sans',sans-serif;transition:border-color .2s}
+.form-group input:focus{outline:none;border-color:#2f7cf6}
+.form-group input::placeholder{color:#3a4a62}
+.btn-submit{width:100%;padding:13px;background:#2f7cf6;border:none;border-radius:8px;color:white;font-size:15px;font-weight:700;font-family:'Sora',sans-serif;cursor:pointer;transition:all .2s;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-submit:hover{background:#1a5fd4}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.alert{padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.alert-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#fca5a5}
+.alert-info{background:rgba(47,124,246,0.08);border:1px solid rgba(47,124,246,0.2);color:#93c5fd}
+.card-footer{text-align:center;margin-top:20px;font-size:13px;color:#6b7a99}
 </style>
 </head>
 <body>
-
-<div class="sidebar">
-  <div class="sidebar-logo">
-    <div class="logo-icon">🛡</div>
-    <div class="logo-text"><h2>Livestrym</h2><span>Live Protection</span></div>
-  </div>
-  <div class="user-box">
-    <div class="user-avatar" id="user-avatar">?</div>
-    <div>
-      <div class="user-name" id="user-name">Loading...</div>
-      <span class="user-tier" id="user-tier">free</span>
-    </div>
-    <div style="clear:both"></div>
-  </div>
-  <nav class="sidebar-nav">
-    <a class="nav-item active" href="/dashboard"><span class="nav-icon">📊</span>Overview</a>
-    <a class="nav-item" href="#alerts"><span class="nav-icon">🚨</span>Alerts</a>
-    <a class="nav-item" href="#settings"><span class="nav-icon">⚙️</span>Settings</a>
-  </nav>
-  <div class="sidebar-footer">
-    <a href="#" onclick="logout()" style="font-size:12px;color:#6b7280">Sign out</a>
-  </div>
-</div>
-
-<div class="main">
-  <div class="topbar">
-    <div class="topbar-title" id="topbar-title">Overview</div>
-    <div id="stream-status" class="status-offline">
-      <div class="dot dot-offline"></div>
-      Checking...
+<nav>
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon">🛡</div>
+    Livestrym
+  </a>
+  <a href="/signup" style="font-size:13px;color:#6b7a99">No account? Sign up free</a>
+</nav>
+<div class="page">
+  <div class="card">
+    <h1>Welcome back</h1>
+    <p>Sign in to your Livestrym account</p>
+    <div id="alert-box"></div>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Email address</label>
+        <input type="email" id="email" placeholder="you@ministry.org" required autofocus>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="Your password" required>
+      </div>
+      <button type="submit" class="btn-submit" id="submit-btn">
+        <span id="btn-text">Sign in →</span>
+        <div class="spinner" id="spinner"></div>
+      </button>
+    </form>
+    <div class="card-footer">
+      Don't have an account? <a href="/signup">Sign up free</a>
     </div>
   </div>
-
-  <div class="content" id="content">
-    <div class="loading">Loading your dashboard...</div>
-  </div>
 </div>
-
 <script>
-// ── Auth ──────────────────────────────────────────────────────────────────────
-const token = localStorage.getItem('ls_token');
-const user  = JSON.parse(localStorage.getItem('ls_user') || 'null');
+async function handleLogin(e) {
+  e.preventDefault();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn      = document.getElementById('submit-btn');
+  const btnText  = document.getElementById('btn-text');
+  const spinner  = document.getElementById('spinner');
+  const alertBox = document.getElementById('alert-box');
 
-if (!token || !user) {
-  window.location.href = '/dashboard/login';
-}
+  alertBox.innerHTML = '';
+  btn.disabled = true;
+  btnText.textContent = 'Signing in...';
+  spinner.style.display = 'block';
 
-function logout() {
-  localStorage.removeItem('ls_token');
-  localStorage.removeItem('ls_user');
-  window.location.href = '/dashboard/login';
-}
-
-// ── Populate sidebar ──────────────────────────────────────────────────────────
-if (user) {
-  const initials = user.full_name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-  document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-name').textContent   = user.full_name;
-  document.getElementById('user-tier').textContent   = user.tier.toUpperCase();
-}
-
-// ── Load detections ───────────────────────────────────────────────────────────
-async function loadDashboard() {
   try {
-    const r    = await fetch(`/api/detections?token=${token}`);
-    const data = await r.json();
-
-    if (!r.ok) {
-      if (r.status === 401) { logout(); return; }
-      throw new Error(data.detail);
-    }
-
-    renderDashboard(data);
-  } catch (err) {
-    document.getElementById('content').innerHTML =
-      `<div class="loading">Error loading dashboard. Please refresh.</div>`;
-  }
-}
-
-function renderDashboard(detections) {
-  const total    = detections.length;
-  const reported = detections.filter(d => d.reported).length;
-  const high     = detections.filter(d => parseFloat(d.confidence_score || 0) >= 0.85).length;
-
-  const upgradeBanner = user.tier === 'free' ? `
-    <div class="upgrade-banner">
-      <div>
-        <h3>Upgrade to Pro or Business</h3>
-        <p>Get more channels, team members, WhatsApp alerts and longer history.</p>
-      </div>
-      <a href="/pricing" class="btn btn-blue">Upgrade →</a>
-    </div>` : '';
-
-  let rows = '';
-  if (detections.length === 0) {
-    rows = '<tr><td colspan="6" class="empty">No rebroadcasts detected yet. Make sure your channel is being monitored.</td></tr>';
-  } else {
-    detections.forEach(d => {
-      const score = parseFloat(d.confidence_score || 0);
-      const cc    = score >= 0.85 ? 'conf-high' : 'conf-mid';
-      const time  = new Date(d.detected_at).toLocaleString();
-      rows += `<tr>
-        <td>${d.channel_name || 'Unknown'}</td>
-        <td><a href="${d.stream_url}" target="_blank" style="color:#4d9de0">${(d.stream_title || '').slice(0,45)}</a></td>
-        <td style="text-align:center">${d.concurrent_viewers || '?'}</td>
-        <td class="${cc}" style="text-align:center">${(score * 100).toFixed(0)}%</td>
-        <td style="text-align:center">${d.reported ? '✅' : '—'}</td>
-        <td>${time}</td>
-        <td><a href="${d.stream_url}" target="_blank" class="btn btn-sm btn-gray">Open</a></td>
-      </tr>`;
+    const r = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
     });
+    const data = await r.json();
+    if (!r.ok) {
+      alertBox.innerHTML = `<div class="alert alert-error">${data.detail || 'Login failed. Please try again.'}</div>`;
+      return;
+    }
+    // Store token and redirect to dashboard
+    localStorage.setItem('ls_token', data.access_token);
+    localStorage.setItem('ls_user', JSON.stringify(data.user));
+    window.location.href = '/dashboard';
+  } catch (err) {
+    alertBox.innerHTML = `<div class="alert alert-error">Network error. Please try again.</div>`;
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Sign in →';
+    spinner.style.display = 'none';
   }
-
-  document.getElementById('content').innerHTML = `
-    <div class="page-title">Overview</div>
-    <div class="page-sub">Welcome back, ${user.full_name.split(' ')[0]}</div>
-    ${upgradeBanner}
-    <div class="stats">
-      <div class="stat">
-        <div class="stat-icon">🚨</div>
-        <div class="stat-num">${total}</div>
-        <div class="stat-label">Total detections</div>
-      </div>
-      <div class="stat">
-        <div class="stat-icon">🔴</div>
-        <div class="stat-num">${high}</div>
-        <div class="stat-label">High confidence (85%+)</div>
-      </div>
-      <div class="stat">
-        <div class="stat-icon">✅</div>
-        <div class="stat-num">${reported}</div>
-        <div class="stat-label">Reported to YouTube</div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <h3>Rebroadcast Alerts</h3>
-        <span style="font-size:12px;color:#6b7280">${total} total</span>
-      </div>
-      <table>
-        <tr>
-          <th>Channel</th>
-          <th>Stream</th>
-          <th>Viewers</th>
-          <th>Match</th>
-          <th>Reported</th>
-          <th>Detected</th>
-          <th></th>
-        </tr>
-        ${rows}
-      </table>
-    </div>`;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-loadDashboard();
+// If already logged in redirect to dashboard
+const existingToken = localStorage.getItem('ls_token');
+if (existingToken && existingToken !== 'null') {
+  window.location.href = '/dashboard';
+}
 </script>
 </body>
 </html>
