@@ -105,9 +105,9 @@ tr:hover td{background:#151f2e}
     <div style="clear:both"></div>
   </div>
   <nav class="sidebar-nav">
-    <a class="nav-item active" href="/dashboard"><span class="nav-icon">📊</span>Overview</a>
-    <a class="nav-item" href="#alerts"><span class="nav-icon">🚨</span>Alerts</a>
-    <a class="nav-item" href="#settings"><span class="nav-icon">⚙️</span>Settings</a>
+    <a class="nav-item active" onclick="showPage('overview')" id="nav-overview"><span class="nav-icon">📊</span>Overview</a>
+    <a class="nav-item" onclick="showPage('alerts')" id="nav-alerts"><span class="nav-icon">🚨</span>Alerts</a>
+    <a class="nav-item" onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span>Settings</a>
   </nav>
   <div class="sidebar-footer">
     <a href="#" onclick="logout()" style="font-size:12px;color:#6b7280">Sign out</a>
@@ -155,15 +155,14 @@ if (user) {
 // ── Load detections ───────────────────────────────────────────────────────────
 async function loadDashboard() {
   try {
-    const r = await fetch(`/api/detections?token=${encodeURIComponent(token)}`);
+    const r    = await fetch(`/api/detections?token=${encodeURIComponent(token)}`);
     const data = await r.json();
-
     if (!r.ok) {
       if (r.status === 401) { logout(); return; }
       throw new Error(data.detail);
     }
-
-    renderDashboard(data);
+    allDetections = data;
+    renderOverview(allDetections);
   } catch (err) {
     document.getElementById('content').innerHTML =
       `<div class="loading">Error loading dashboard. Please refresh.</div>`;
@@ -247,6 +246,126 @@ function renderDashboard(detections) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 loadDashboard();
+
+// ── Page navigation ───────────────────────────────────────────────────────────
+let allDetections = [];
+
+function showPage(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`nav-${page}`).classList.add('active');
+  document.getElementById('topbar-title').textContent =
+    page === 'overview' ? 'Overview' : page === 'alerts' ? 'Alerts' : 'Settings';
+
+  if (page === 'overview')  renderOverview(allDetections);
+  if (page === 'alerts')    renderAlerts(allDetections);
+  if (page === 'settings')  renderSettings();
+}
+
+function renderOverview(detections) {
+  const total    = detections.length;
+  const high     = detections.filter(d => parseFloat(d.confidence_score || 0) >= 0.85).length;
+  const reported = detections.filter(d => d.reported).length;
+
+  const upgradeBanner = user.tier === 'free' ? `
+    <div class="upgrade-banner">
+      <div>
+        <h3>Upgrade to Pro or Business</h3>
+        <p>Get more channels, team members, WhatsApp alerts and longer history.</p>
+      </div>
+      <a href="#" class="btn btn-blue">Upgrade →</a>
+    </div>` : '';
+
+  const recent   = detections.slice(0, 5);
+  let rows = buildRows(recent);
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-title">Overview</div>
+    <div class="page-sub">Welcome back, ${user.full_name.split(' ')[0]}</div>
+    ${upgradeBanner}
+    <div class="stats">
+      <div class="stat"><div class="stat-icon">🚨</div><div class="stat-num">${total}</div><div class="stat-label">Total detections</div></div>
+      <div class="stat"><div class="stat-icon">🔴</div><div class="stat-num">${high}</div><div class="stat-label">High confidence (85%+)</div></div>
+      <div class="stat"><div class="stat-icon">✅</div><div class="stat-num">${reported}</div><div class="stat-label">Reported to YouTube</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Recent Alerts</h3><a onclick="showPage('alerts')" style="font-size:12px;cursor:pointer">View all →</a></div>
+      <table><tr><th>Channel</th><th>Stream</th><th>Viewers</th><th>Match</th><th>Time</th><th></th></tr>${rows}</table>
+    </div>`;
+}
+
+function renderAlerts(detections) {
+  let rows = buildRows(detections);
+  document.getElementById('content').innerHTML = `
+    <div class="page-title">All Alerts</div>
+    <div class="page-sub">${detections.length} total rebroadcasts detected</div>
+    <div class="card">
+      <div class="card-header"><h3>Rebroadcast Log</h3><span style="font-size:12px;color:#6b7280">${detections.length} total</span></div>
+      <table><tr><th>Channel</th><th>Stream</th><th>Viewers</th><th>Match</th><th>Reported</th><th>Detected</th><th></th></tr>${rows}</table>
+    </div>`;
+}
+
+function renderSettings() {
+  document.getElementById('content').innerHTML = `
+    <div class="page-title">Settings</div>
+    <div class="page-sub">Manage your account and alert preferences</div>
+    <div class="card">
+      <div class="card-header"><h3>Account Details</h3></div>
+      <div style="padding:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Full Name</div>
+            <div style="font-size:14px;color:white">${user.full_name}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Email</div>
+            <div style="font-size:14px;color:white">${user.email}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Organization</div>
+            <div style="font-size:14px;color:white">${user.org_name}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Current Plan</div>
+            <div style="font-size:14px"><span class="badge b-${user.tier}">${user.tier.toUpperCase()}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><h3>Telegram Alerts</h3></div>
+      <div style="padding:20px;font-size:13px;color:#6b7280;line-height:1.7">
+        <p>Telegram alerts are configured in your desktop app settings.</p>
+        <p>To set up Telegram: open the Livestrym desktop app → Settings tab → enter your Bot Token and Chat ID.</p>
+        <p style="margin-top:12px">Need help? Email us at <a href="mailto:hello@livestrym.io">hello@livestrym.io</a></p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><h3>Danger Zone</h3></div>
+      <div style="padding:20px">
+        <button onclick="logout()" class="btn" style="background:#2d0a0a;color:#ef4444;border:1px solid #7f1d1d">Sign out of all devices</button>
+      </div>
+    </div>`;
+}
+
+function buildRows(detections) {
+  if (!detections.length) {
+    return '<tr><td colspan="7" class="empty">No rebroadcasts detected yet.</td></tr>';
+  }
+  return detections.map(d => {
+    const score = parseFloat(d.confidence_score || 0);
+    const cc    = score >= 0.85 ? 'conf-high' : 'conf-mid';
+    const time  = new Date(d.detected_at).toLocaleString();
+    return `<tr>
+      <td>${d.channel_name || 'Unknown'}</td>
+      <td><a href="${d.stream_url}" target="_blank" style="color:#4d9de0">${(d.stream_title || '').slice(0,45)}</a></td>
+      <td style="text-align:center">${d.concurrent_viewers || '?'}</td>
+      <td class="${cc}" style="text-align:center">${(score * 100).toFixed(0)}%</td>
+      <td style="text-align:center">${d.reported ? '✅' : '—'}</td>
+      <td style="font-size:12px;color:#6b7280">${time}</td>
+      <td><a href="${d.stream_url}" target="_blank" class="btn btn-sm btn-gray">Open</a></td>
+    </tr>`;
+  }).join('');
+}
 </script>
 </body>
 </html>
