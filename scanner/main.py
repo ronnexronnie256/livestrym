@@ -324,7 +324,29 @@ def send_telegram(match: dict):
     except Exception as e:
         log.error(f"Telegram failed: {e}")
 
-
+def log_detection_to_api(match: dict):
+    """Log a confirmed rebroadcast to the Livestrym API."""
+    api_url = os.getenv("API_URL", "http://localhost:8000")
+    try:
+        r = requests.post(
+            f"{api_url}/api/detections",
+            json={
+                "stream_url":         match.get("url", ""),
+                "stream_title":       match.get("title", ""),
+                "channel_name":       match.get("channel_title", ""),
+                "channel_id":         match.get("channel_id", ""),
+                "thumbnail_url":      match.get("thumbnail", ""),
+                "concurrent_viewers": str(match.get("concurrent_viewers", "?")),
+                "confidence_score":   str(match.get("combined_score", 0)),
+            },
+            timeout=10
+        )
+        if r.status_code == 200:
+            log.info("Detection logged to API")
+        else:
+            log.warning(f"API log failed: {r.status_code}")
+    except Exception as e:
+        log.warning(f"Could not log to API: {e}")
 # ── Main Loop ─────────────────────────────────────────────────────────────────
 
 def run():
@@ -406,6 +428,7 @@ def run():
                     log.info(f"MATCH: {suspect['channel_title']} at {score:.0%}")
                     suspect["combined_score"] = score
                     send_telegram(suspect)
+                    log_detection_to_api(suspect)
                     already_reported.add(suspect["channel_id"])
 
             log.info(f"Next scan in {interval}s...")
