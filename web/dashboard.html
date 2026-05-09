@@ -4,89 +4,147 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Livestrym — Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'DM Sans',sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100vh;display:flex}
 a{color:#4d9de0;text-decoration:none}
 
 /* Sidebar */
-.sidebar{width:220px;background:#111827;border-right:1px solid #1f2937;position:fixed;height:100vh;display:flex;flex-direction:column;z-index:100}
-.sidebar-logo{padding:20px 18px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:10px}
-.logo-icon{width:32px;height:32px;background:#2f7cf6;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.sidebar{width:230px;background:#0d1321;border-right:1px solid #1a2540;position:fixed;height:100vh;display:flex;flex-direction:column;z-index:100}
+.sidebar-logo{padding:20px 18px;border-bottom:1px solid #1a2540;display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:#2f7cf6;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 0 16px rgba(47,124,246,0.35)}
 .logo-text h2{font-family:'Sora',sans-serif;font-size:16px;font-weight:700;color:white}
-.logo-text span{font-size:10px;color:#6b7280}
-.user-box{padding:14px 18px;border-bottom:1px solid #1f2937}
-.user-avatar{width:34px;height:34px;border-radius:50%;background:#0f1f3d;border:2px solid #2f7cf6;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#4d9de0;float:left;margin-right:10px}
+.logo-text span{font-size:10px;color:#4a5a72}
+.user-box{padding:14px 18px;border-bottom:1px solid #1a2540}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:#0f1f3d;border:2px solid #2f7cf6;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#4d9de0;float:left;margin-right:10px}
 .user-name{font-size:13px;font-weight:600;color:white;padding-top:2px}
-.user-tier{font-size:10px;background:#0f1f3d;color:#4d9de0;padding:2px 7px;border-radius:8px;display:inline-block;margin-top:3px;font-weight:600}
-.sidebar-nav{flex:1;padding:10px 0}
-.nav-item{display:flex;align-items:center;padding:10px 18px;color:#9ca3af;font-size:13px;gap:10px;border-left:3px solid transparent;cursor:pointer;text-decoration:none}
-.nav-item:hover,.nav-item.active{background:#1f2937;color:white;border-left-color:#2f7cf6}
+.user-tier{font-size:10px;padding:2px 8px;border-radius:8px;display:inline-block;margin-top:3px;font-weight:700;font-family:'Sora',sans-serif}
+.tier-free{background:#0f1f3d;color:#4d9de0}
+.tier-pro{background:#052e1c;color:#10b981}
+.tier-enterprise{background:#2d1f00;color:#f59e0b}
+.tier-business{background:#1a0a2d;color:#a78bfa}
+.sidebar-nav{flex:1;padding:10px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;padding:10px 18px;color:#6b7a99;font-size:13px;gap:10px;border-left:3px solid transparent;cursor:pointer;text-decoration:none;transition:all .2s}
+.nav-item:hover,.nav-item.active{background:#131e30;color:white;border-left-color:#2f7cf6}
 .nav-icon{font-size:15px;width:20px;text-align:center}
-.sidebar-footer{padding:14px 18px;border-top:1px solid #1f2937}
+.nav-badge{background:#ef4444;color:white;font-size:10px;padding:2px 6px;border-radius:8px;margin-left:auto;font-weight:700}
+.sidebar-footer{padding:14px 18px;border-top:1px solid #1a2540}
 
 /* Main */
-.main{margin-left:220px;flex:1;min-height:100vh}
-.topbar{background:#111827;border-bottom:1px solid #1f2937;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.main{margin-left:230px;flex:1;min-height:100vh;display:flex;flex-direction:column}
+.topbar{background:#0d1321;border-bottom:1px solid #1a2540;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-left{display:flex;align-items:center;gap:12px}
 .topbar-title{font-size:15px;font-weight:700;color:white;font-family:'Sora',sans-serif}
-.content{padding:24px}
-.page-title{font-size:18px;font-weight:700;color:white;font-family:'Sora',sans-serif;margin-bottom:4px}
-.page-sub{font-size:13px;color:#6b7280;margin-bottom:22px}
+.content{padding:24px;flex:1}
+
+/* Live banner */
+.live-banner{background:linear-gradient(135deg,#1a0505,#2d0a0a);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.live-banner-left{display:flex;align-items:center;gap:12px}
+.live-dot{width:10px;height:10px;background:#ef4444;border-radius:50%;animation:livepulse 1.5s infinite;flex-shrink:0}
+@keyframes livepulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.6)}70%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.live-label{font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#ef4444;letter-spacing:1px}
+.live-title{font-size:14px;color:white;font-weight:500}
+.live-time{font-size:12px;color:#6b7a99}
+.live-viewers{font-family:'Sora',sans-serif;font-size:22px;font-weight:700;color:white}
+.live-viewers-label{font-size:11px;color:#6b7a99;margin-top:2px}
+
+.offline-banner{background:#0d1321;border:1px solid #1a2540;border-radius:12px;padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.offline-dot{width:8px;height:8px;background:#374151;border-radius:50%;flex-shrink:0}
+.offline-text{font-size:13px;color:#4a5a72}
 
 /* Stats */
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px}
-.stat{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:18px}
-.stat-icon{font-size:22px;margin-bottom:8px}
-.stat-num{font-size:26px;font-weight:700;color:white;font-family:'Sora',sans-serif}
-.stat-label{font-size:11px;color:#6b7280;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.stat{background:#0d1321;border:1px solid #1a2540;border-radius:10px;padding:16px;position:relative;overflow:hidden}
+.stat-icon{font-size:20px;margin-bottom:8px}
+.stat-num{font-size:24px;font-weight:700;color:white;font-family:'Sora',sans-serif;line-height:1}
+.stat-label{font-size:11px;color:#4a5a72;margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+.stat-accent{position:absolute;bottom:0;left:0;right:0;height:3px}
+.a-red{background:#ef4444}
+.a-blue{background:#2f7cf6}
+.a-green{background:#10b981}
+.a-orange{background:#f59e0b}
+
+/* Session counter */
+.session-stats{display:flex;gap:20px;align-items:center;background:#0d1321;border:1px solid #1a2540;border-radius:10px;padding:12px 18px;margin-bottom:22px}
+.session-item{text-align:center}
+.session-num{font-family:'Sora',sans-serif;font-size:20px;font-weight:700;color:white}
+.session-label{font-size:11px;color:#4a5a72;margin-top:2px}
+.session-divider{width:1px;height:32px;background:#1a2540}
 
 /* Card */
-.card{background:#111827;border:1px solid #1f2937;border-radius:10px;overflow:hidden;margin-bottom:18px}
-.card-header{padding:14px 18px;border-bottom:1px solid #1f2937;display:flex;align-items:center;justify-content:space-between}
+.card{background:#0d1321;border:1px solid #1a2540;border-radius:10px;overflow:hidden;margin-bottom:18px}
+.card-header{padding:14px 18px;border-bottom:1px solid #1a2540;display:flex;align-items:center;justify-content:space-between}
 .card-header h3{font-size:13px;font-weight:700;color:white;font-family:'Sora',sans-serif}
+.card-body{padding:18px}
 
 /* Table */
 table{width:100%;border-collapse:collapse;font-size:13px}
-th{padding:10px 14px;color:#6b7280;font-weight:normal;text-align:left;border-bottom:1px solid #1f2937;font-size:11px;text-transform:uppercase;letter-spacing:.4px;background:#0d1421}
-td{padding:11px 14px;border-bottom:1px solid #0f1623;vertical-align:middle;color:#e0e0e0}
+th{padding:10px 14px;color:#4a5a72;font-weight:normal;text-align:left;border-bottom:1px solid #1a2540;font-size:11px;text-transform:uppercase;letter-spacing:.4px;background:#090e1a}
+td{padding:11px 14px;border-bottom:1px solid #111827;vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:#151f2e}
+tr:hover td{background:#111827}
+tr.new-threat td{animation:flashred .8s ease}
+@keyframes flashred{0%{background:rgba(239,68,68,0.2)}100%{background:transparent}}
+
+/* Impact */
+.impact-box{background:linear-gradient(135deg,#0f1f3d,#1a0a2d);border:1px solid rgba(47,124,246,0.2);border-radius:10px;padding:16px 20px;margin-bottom:22px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+.impact-item{text-align:center}
+.impact-num{font-family:'Sora',sans-serif;font-size:22px;font-weight:700;color:white}
+.impact-label{font-size:11px;color:#4a5a72;margin-top:3px}
 
 /* Badges */
-.badge{padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;display:inline-block}
+.badge{padding:3px 9px;border-radius:8px;font-size:11px;font-weight:700;display:inline-block}
 .b-free{background:#0f1f3d;color:#4d9de0}
 .b-pro{background:#052e1c;color:#10b981}
-.b-business{background:#2d1f00;color:#f59e0b}
+.b-enterprise{background:#2d1f00;color:#f59e0b}
+.b-business{background:#1a0a2d;color:#a78bfa}
+.b-high{background:rgba(239,68,68,0.15);color:#ef4444}
+.b-medium{background:rgba(245,158,11,0.15);color:#f59e0b}
+.b-low{background:rgba(107,114,128,0.15);color:#9ca3af}
 
 /* Buttons */
-.btn{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:5px;text-decoration:none;transition:all .2s;font-family:'Sora',sans-serif}
+.btn:hover{opacity:.85}
 .btn-blue{background:#2f7cf6;color:#fff}
-.btn-gray{background:#1f2937;color:#9ca3af;border:1px solid #374151}
+.btn-red{background:#ef4444;color:#fff}
+.btn-gray{background:#1a2540;color:#9ca3af;border:1px solid #253050}
 .btn-sm{padding:4px 10px;font-size:11px}
+.btn-green{background:#10b981;color:#fff}
 
 /* Conf */
 .conf-high{color:#ef4444;font-weight:700}
-.conf-mid{color:#f59e0b;font-weight:700}
+.conf-medium{color:#f59e0b;font-weight:700}
+.conf-low{color:#6b7280}
 
 /* Empty */
-.empty{color:#374151;text-align:center;padding:40px;font-size:13px}
+.empty{color:#253050;text-align:center;padding:40px;font-size:13px}
 
-/* Status */
-.status-live{display:flex;align-items:center;gap:6px;font-size:12px;color:#10b981}
-.status-offline{display:flex;align-items:center;gap:6px;font-size:12px;color:#6b7280}
-.dot{width:7px;height:7px;border-radius:50%}
-.dot-live{background:#10b981;animation:pulse 2s infinite}
-.dot-offline{background:#6b7280}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+/* Settings form */
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:11px;color:#4a5a72;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.form-group input,.form-group select{width:100%;padding:10px 12px;background:#060a12;border:1px solid #1a2540;border-radius:7px;color:#e0e0e0;font-size:13px;font-family:'DM Sans',sans-serif}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:#2f7cf6}
 
 /* Upgrade banner */
-.upgrade-banner{background:linear-gradient(135deg,#0f1f3d,#1a0a2d);border:1px solid #1f3a6e;border-radius:10px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between}
-.upgrade-banner h3{font-size:14px;color:white;margin-bottom:3px;font-family:'Sora',sans-serif}
-.upgrade-banner p{font-size:12px;color:#6b7280}
+.upgrade-banner{background:linear-gradient(135deg,#0f1f3d,#1a0a2d);border:1px solid rgba(47,124,246,0.25);border-radius:10px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.upgrade-banner h3{font-family:'Sora',sans-serif;font-size:14px;color:white;margin-bottom:3px}
+.upgrade-banner p{font-size:12px;color:#4a5a72}
+
+/* Offender tag */
+.repeat-tag{font-size:10px;background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);padding:2px 7px;border-radius:6px;margin-left:6px;font-weight:700}
+
+/* Auto-refresh indicator */
+.refresh-indicator{display:flex;align-items:center;gap:6px;font-size:11px;color:#4a5a72}
+.refresh-dot{width:6px;height:6px;border-radius:50%;background:#10b981;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
 /* Loading */
-.loading{text-align:center;padding:60px;color:#374151;font-size:14px}
+.loading{text-align:center;padding:60px;color:#253050;font-size:14px}
+
+/* Page title */
+.page-title{font-family:'Sora',sans-serif;font-size:18px;font-weight:700;color:white;margin-bottom:4px}
+.page-sub{font-size:13px;color:#4a5a72;margin-bottom:20px}
 </style>
 </head>
 <body>
@@ -96,33 +154,52 @@ tr:hover td{background:#151f2e}
     <div class="logo-icon">🛡</div>
     <div class="logo-text"><h2>Livestrym</h2><span>Live Protection</span></div>
   </div>
-  <div class="user-box">
+  <div class="user-box" style="overflow:hidden">
     <div class="user-avatar" id="user-avatar">?</div>
     <div>
       <div class="user-name" id="user-name">Loading...</div>
-      <span class="user-tier" id="user-tier">free</span>
+      <span class="user-tier tier-free" id="user-tier">FREE</span>
     </div>
     <div style="clear:both"></div>
   </div>
   <nav class="sidebar-nav">
-    <a class="nav-item active" onclick="showPage('overview')" id="nav-overview"><span class="nav-icon">📊</span>Overview</a>
-    <a class="nav-item" onclick="showPage('alerts')" id="nav-alerts"><span class="nav-icon">🚨</span>Alerts</a>
-    <a class="nav-item" onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span>Settings</a>
+    <a class="nav-item active" onclick="showPage('overview')" id="nav-overview">
+      <span class="nav-icon">📊</span>Overview
+    </a>
+    <a class="nav-item" onclick="showPage('live')" id="nav-live">
+      <span class="nav-icon">🔴</span>Live Monitor
+    </a>
+    <a class="nav-item" onclick="showPage('alerts')" id="nav-alerts">
+      <span class="nav-icon">🚨</span>All Alerts
+      <span class="nav-badge" id="nav-alerts-badge" style="display:none">0</span>
+    </a>
+    <a class="nav-item" onclick="showPage('offenders')" id="nav-offenders">
+      <span class="nav-icon">🚫</span>Offenders
+    </a>
+    <a class="nav-item" onclick="showPage('settings')" id="nav-settings">
+      <span class="nav-icon">⚙️</span>Settings
+    </a>
   </nav>
   <div class="sidebar-footer">
-    <a href="#" onclick="logout()" style="font-size:12px;color:#6b7280">Sign out</a>
+    <div style="font-size:11px;color:#253050;margin-bottom:8px" id="last-refresh">Checking...</div>
+    <a href="#" onclick="logout()" style="font-size:12px;color:#4a5a72">Sign out</a>
   </div>
 </div>
 
 <div class="main">
   <div class="topbar">
-    <div class="topbar-title" id="topbar-title">Overview</div>
-    <div id="stream-status" class="status-offline">
-      <div class="dot dot-offline"></div>
-      Checking...
+    <div class="topbar-left">
+      <div class="topbar-title" id="topbar-title">Overview</div>
+      <div class="refresh-indicator" id="refresh-indicator" style="display:none">
+        <div class="refresh-dot"></div>
+        <span>Live</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div id="stream-status-top" style="font-size:12px;color:#4a5a72">Checking stream...</div>
+      <span style="font-size:12px;color:#253050" id="current-time"></span>
     </div>
   </div>
-
   <div class="content" id="content">
     <div class="loading">Loading your dashboard...</div>
   </div>
@@ -138,234 +215,447 @@ if (!token || !user || token === 'null') {
   throw new Error('Not authenticated');
 }
 
+// ── State ─────────────────────────────────────────────────────────────────────
+let allDetections    = [];
+let knownIds         = new Set();
+let currentPage      = 'overview';
+let isLive           = false;
+let liveTitle        = '';
+let autoRefreshTimer = null;
+let sessionThreats   = 0;
+let sessionScans     = 0;
+let repeatOffenders  = {};
+
+// ── Sidebar user info ─────────────────────────────────────────────────────────
+const initials = user.full_name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+document.getElementById('user-avatar').textContent = initials;
+document.getElementById('user-name').textContent   = user.full_name;
+const tierEl = document.getElementById('user-tier');
+tierEl.textContent = user.tier.toUpperCase();
+tierEl.className   = `user-tier tier-${user.tier}`;
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('current-time').textContent =
+    new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Logout ────────────────────────────────────────────────────────────────────
 function logout() {
-  localStorage.removeItem('ls_token');
-  localStorage.removeItem('ls_user');
+  localStorage.clear();
   window.location.href = '/dashboard/login';
 }
 
-// ── Populate sidebar ──────────────────────────────────────────────────────────
-if (user) {
-  const initials = user.full_name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
-  document.getElementById('user-avatar').textContent = initials;
-  document.getElementById('user-name').textContent   = user.full_name;
-  document.getElementById('user-tier').textContent   = user.tier.toUpperCase();
-}
-
-// ── Load detections ───────────────────────────────────────────────────────────
-async function loadDashboard() {
+// ── Fetch detections ──────────────────────────────────────────────────────────
+async function fetchDetections() {
   try {
     const r    = await fetch(`/api/detections?token=${encodeURIComponent(token)}`);
+    if (r.status === 401) { logout(); return; }
     const data = await r.json();
-    if (!r.ok) {
-      if (r.status === 401) { logout(); return; }
-      throw new Error(data.detail);
-    }
+    if (!r.ok) throw new Error(data.detail);
+
+    // Find new detections
+    const newOnes = data.filter(d => !knownIds.has(d.id));
+    newOnes.forEach(d => {
+      knownIds.add(d.id);
+      sessionThreats++;
+      // Track repeat offenders
+      const ch = d.channel_id || d.channel_name;
+      if (ch) repeatOffenders[ch] = (repeatOffenders[ch] || 0) + 1;
+    });
+
     allDetections = data;
-    renderOverview(allDetections);
+
+    // Update badge
+    const badge = document.getElementById('nav-alerts-badge');
+    if (data.length > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent   = data.length;
+    }
+
+    // Update last refresh
+    document.getElementById('last-refresh').textContent =
+      `Updated ${new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+
+    // Re-render current page
+    if (currentPage === 'overview') renderOverview();
+    if (currentPage === 'live')     renderLive();
+    if (currentPage === 'alerts')   renderAlerts();
+
+    return newOnes;
   } catch (err) {
-    document.getElementById('content').innerHTML =
-      `<div class="loading">Error loading dashboard. Please refresh.</div>`;
+    console.error('Fetch error:', err);
+    return [];
   }
 }
 
-function renderDashboard(detections) {
-  const total    = detections.length;
-  const reported = detections.filter(d => d.reported).length;
-  const high     = detections.filter(d => parseFloat(d.confidence_score || 0) >= 0.85).length;
+// ── Check stream status ───────────────────────────────────────────────────────
+async function checkStreamStatus() {
+  try {
+    const r    = await fetch(`/api/stream-status?token=${encodeURIComponent(token)}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    isLive    = data.is_live;
+    liveTitle = data.title || '';
+    sessionScans = data.scan_count || sessionScans;
+    updateStreamStatusUI();
+  } catch (err) {
+    // Stream status endpoint may not exist yet — that's ok
+  }
+}
+
+function updateStreamStatusUI() {
+  const el = document.getElementById('stream-status-top');
+  const ri = document.getElementById('refresh-indicator');
+  if (isLive) {
+    el.innerHTML = '<span style="color:#ef4444;font-weight:700">🔴 LIVE NOW</span>';
+    ri.style.display = 'flex';
+  } else {
+    el.innerHTML = '<span style="color:#4a5a72">⚫ Offline</span>';
+    ri.style.display = 'none';
+  }
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`nav-${page}`)?.classList.add('active');
+
+  const titles = {
+    overview: 'Overview', live: 'Live Monitor',
+    alerts: 'All Alerts', offenders: 'Offender Tracker', settings: 'Settings'
+  };
+  document.getElementById('topbar-title').textContent = titles[page] || page;
+
+  if (page === 'overview')   renderOverview();
+  if (page === 'live')       renderLive();
+  if (page === 'alerts')     renderAlerts();
+  if (page === 'offenders')  renderOffenders();
+  if (page === 'settings')   renderSettings();
+}
+
+// ── Overview ──────────────────────────────────────────────────────────────────
+function renderOverview() {
+  const total     = allDetections.length;
+  const high      = allDetections.filter(d => parseFloat(d.confidence_score||0) >= 0.85).length;
+  const reported  = allDetections.filter(d => d.reported).length;
+  const viewers   = allDetections.reduce((sum, d) => sum + parseInt(d.concurrent_viewers||0), 0);
 
   const upgradeBanner = user.tier === 'free' ? `
     <div class="upgrade-banner">
       <div>
-        <h3>Upgrade to Pro or Business</h3>
-        <p>Get more channels, team members, WhatsApp alerts and longer history.</p>
+        <h3>Upgrade to Pro for real-time threat monitoring</h3>
+        <p>Live threat map, one-click reporting, team alerts, and more.</p>
       </div>
-      <a href="/pricing" class="btn btn-blue">Upgrade →</a>
+      <a href="#" class="btn btn-blue">Upgrade to Pro — $19/mo</a>
     </div>` : '';
 
-  let rows = '';
-  if (detections.length === 0) {
-    rows = '<tr><td colspan="6" class="empty">No rebroadcasts detected yet. Make sure your channel is being monitored.</td></tr>';
-  } else {
-    detections.forEach(d => {
-      const score = parseFloat(d.confidence_score || 0);
-      const cc    = score >= 0.85 ? 'conf-high' : 'conf-mid';
-      const time  = new Date(d.detected_at).toLocaleString();
-      rows += `<tr>
-        <td>${d.channel_name || 'Unknown'}</td>
-        <td><a href="${d.stream_url}" target="_blank" style="color:#4d9de0">${(d.stream_title || '').slice(0,45)}</a></td>
-        <td style="text-align:center">${d.concurrent_viewers || '?'}</td>
-        <td class="${cc}" style="text-align:center">${(score * 100).toFixed(0)}%</td>
-        <td style="text-align:center">${d.reported ? '✅' : '—'}</td>
-        <td>${time}</td>
-        <td><a href="${d.stream_url}" target="_blank" class="btn btn-sm btn-gray">Open</a></td>
-      </tr>`;
-    });
-  }
+  const recent = allDetections.slice(0, 5);
+  const rows   = buildRows(recent, true);
 
   document.getElementById('content').innerHTML = `
     <div class="page-title">Overview</div>
-    <div class="page-sub">Welcome back, ${user.full_name.split(' ')[0]}</div>
+    <div class="page-sub">Welcome back, ${user.full_name.split(' ')[0]} — ${user.org_name}</div>
     ${upgradeBanner}
+    ${isLive ? renderLiveBanner() : renderOfflineBanner()}
     <div class="stats">
       <div class="stat">
         <div class="stat-icon">🚨</div>
         <div class="stat-num">${total}</div>
         <div class="stat-label">Total detections</div>
+        <div class="stat-accent a-red"></div>
       </div>
       <div class="stat">
         <div class="stat-icon">🔴</div>
         <div class="stat-num">${high}</div>
-        <div class="stat-label">High confidence (85%+)</div>
+        <div class="stat-label">High confidence</div>
+        <div class="stat-accent a-orange"></div>
+      </div>
+      <div class="stat">
+        <div class="stat-icon">👥</div>
+        <div class="stat-num">${viewers.toLocaleString()}</div>
+        <div class="stat-label">Viewers impacted</div>
+        <div class="stat-accent a-blue"></div>
       </div>
       <div class="stat">
         <div class="stat-icon">✅</div>
         <div class="stat-num">${reported}</div>
-        <div class="stat-label">Reported to YouTube</div>
+        <div class="stat-label">Reported</div>
+        <div class="stat-accent a-green"></div>
       </div>
     </div>
+    ${viewers > 0 ? renderImpactBox(viewers, total) : ''}
     <div class="card">
       <div class="card-header">
-        <h3>Rebroadcast Alerts</h3>
-        <span style="font-size:12px;color:#6b7280">${total} total</span>
+        <h3>Recent Alerts</h3>
+        <a onclick="showPage('alerts')" style="font-size:12px;cursor:pointer;color:#4d9de0">View all →</a>
       </div>
       <table>
-        <tr>
-          <th>Channel</th>
-          <th>Stream</th>
-          <th>Viewers</th>
-          <th>Match</th>
-          <th>Reported</th>
-          <th>Detected</th>
-          <th></th>
-        </tr>
+        <tr><th>Channel</th><th>Stream</th><th>Viewers</th><th>Severity</th><th>Time</th><th></th></tr>
         ${rows}
       </table>
     </div>`;
 }
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-loadDashboard();
-
-// ── Page navigation ───────────────────────────────────────────────────────────
-let allDetections = [];
-
-function showPage(page) {
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById(`nav-${page}`).classList.add('active');
-  document.getElementById('topbar-title').textContent =
-    page === 'overview' ? 'Overview' : page === 'alerts' ? 'Alerts' : 'Settings';
-
-  if (page === 'overview')  renderOverview(allDetections);
-  if (page === 'alerts')    renderAlerts(allDetections);
-  if (page === 'settings')  renderSettings();
-}
-
-function renderOverview(detections) {
-  const total    = detections.length;
-  const high     = detections.filter(d => parseFloat(d.confidence_score || 0) >= 0.85).length;
-  const reported = detections.filter(d => d.reported).length;
-
-  const upgradeBanner = user.tier === 'free' ? `
-    <div class="upgrade-banner">
-      <div>
-        <h3>Upgrade to Pro or Business</h3>
-        <p>Get more channels, team members, WhatsApp alerts and longer history.</p>
-      </div>
-      <a href="#" class="btn btn-blue">Upgrade →</a>
-    </div>` : '';
-
-  const recent   = detections.slice(0, 5);
-  let rows = buildRows(recent);
+// ── Live Monitor ──────────────────────────────────────────────────────────────
+function renderLive() {
+  const sessionDetections = allDetections.slice(0, sessionThreats || allDetections.length);
 
   document.getElementById('content').innerHTML = `
-    <div class="page-title">Overview</div>
-    <div class="page-sub">Welcome back, ${user.full_name.split(' ')[0]}</div>
-    ${upgradeBanner}
-    <div class="stats">
-      <div class="stat"><div class="stat-icon">🚨</div><div class="stat-num">${total}</div><div class="stat-label">Total detections</div></div>
-      <div class="stat"><div class="stat-icon">🔴</div><div class="stat-num">${high}</div><div class="stat-label">High confidence (85%+)</div></div>
-      <div class="stat"><div class="stat-icon">✅</div><div class="stat-num">${reported}</div><div class="stat-label">Reported to YouTube</div></div>
+    <div class="page-title">Live Monitor</div>
+    <div class="page-sub">Real-time protection during your broadcast</div>
+    ${isLive ? renderLiveBanner() : renderOfflineBanner()}
+    <div class="session-stats">
+      <div class="session-item">
+        <div class="session-num" style="color:#ef4444">${sessionThreats}</div>
+        <div class="session-label">Threats this session</div>
+      </div>
+      <div class="session-divider"></div>
+      <div class="session-item">
+        <div class="session-num">${sessionScans}</div>
+        <div class="session-label">Scans completed</div>
+      </div>
+      <div class="session-divider"></div>
+      <div class="session-item">
+        <div class="session-num" style="color:#10b981">${isLive ? 'Active' : 'Standby'}</div>
+        <div class="session-label">Scanner status</div>
+      </div>
+      <div class="session-divider"></div>
+      <div class="session-item">
+        <div class="session-num">60s</div>
+        <div class="session-label">Scan interval</div>
+      </div>
     </div>
     <div class="card">
-      <div class="card-header"><h3>Recent Alerts</h3><a onclick="showPage('alerts')" style="font-size:12px;cursor:pointer">View all →</a></div>
-      <table><tr><th>Channel</th><th>Stream</th><th>Viewers</th><th>Match</th><th>Time</th><th></th></tr>${rows}</table>
+      <div class="card-header">
+        <h3>🔴 Live Threat Feed</h3>
+        <div class="refresh-indicator">
+          <div class="refresh-dot"></div>
+          <span style="font-size:11px;color:#4a5a72">Auto-refreshing every 30s</span>
+        </div>
+      </div>
+      <table id="live-threats-table">
+        <tr><th>Channel</th><th>Stream</th><th>Viewers stolen</th><th>Confidence</th><th>Detected</th><th>Action</th></tr>
+        ${buildRows(allDetections.slice(0,10), false)}
+      </table>
     </div>`;
 }
 
-function renderAlerts(detections) {
-  let rows = buildRows(detections);
+// ── All Alerts ────────────────────────────────────────────────────────────────
+function renderAlerts() {
+  const rows = buildRows(allDetections, false);
   document.getElementById('content').innerHTML = `
     <div class="page-title">All Alerts</div>
-    <div class="page-sub">${detections.length} total rebroadcasts detected</div>
+    <div class="page-sub">${allDetections.length} total rebroadcasts detected</div>
     <div class="card">
-      <div class="card-header"><h3>Rebroadcast Log</h3><span style="font-size:12px;color:#6b7280">${detections.length} total</span></div>
-      <table><tr><th>Channel</th><th>Stream</th><th>Viewers</th><th>Match</th><th>Reported</th><th>Detected</th><th></th></tr>${rows}</table>
+      <div class="card-header">
+        <h3>Rebroadcast Log</h3>
+        <span style="font-size:12px;color:#4a5a72">${allDetections.length} total</span>
+      </div>
+      <table>
+        <tr><th>Channel</th><th>Stream</th><th>Viewers</th><th>Confidence</th><th>Reported</th><th>Detected</th><th></th></tr>
+        ${rows}
+      </table>
     </div>`;
 }
 
+// ── Offender Tracker ──────────────────────────────────────────────────────────
+function renderOffenders() {
+  // Group by channel
+  const channels = {};
+  allDetections.forEach(d => {
+    const key  = d.channel_id || d.channel_name || 'unknown';
+    const name = d.channel_name || 'Unknown';
+    if (!channels[key]) channels[key] = { name, count: 0, viewers: 0, last: d.detected_at };
+    channels[key].count++;
+    channels[key].viewers += parseInt(d.concurrent_viewers || 0);
+    if (d.detected_at > channels[key].last) channels[key].last = d.detected_at;
+  });
+
+  const sorted = Object.values(channels).sort((a, b) => b.count - a.count);
+
+  let rows = '';
+  if (!sorted.length) {
+    rows = '<tr><td colspan="5" class="empty">No offenders detected yet. Protect your streams to build this list.</td></tr>';
+  } else {
+    sorted.forEach(ch => {
+      const severity = ch.count >= 3 ? '<span class="badge b-high">Repeat</span>' :
+                       ch.count >= 2 ? '<span class="badge b-medium">Multiple</span>' :
+                       '<span class="badge b-low">Once</span>';
+      rows += `<tr>
+        <td><strong>${ch.name}</strong>${ch.count >= 3 ? '<span class="repeat-tag">REPEAT</span>' : ''}</td>
+        <td style="text-align:center;font-family:Sora,sans-serif;font-weight:700;color:${ch.count>=3?'#ef4444':'#f59e0b'}">${ch.count}</td>
+        <td style="text-align:center">${ch.viewers.toLocaleString()}</td>
+        <td>${severity}</td>
+        <td style="font-size:12px;color:#4a5a72">${new Date(ch.last).toLocaleDateString()}</td>
+      </tr>`;
+    });
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-title">Offender Tracker</div>
+    <div class="page-sub">Channels that have rebroadcast your content</div>
+    <div class="card">
+      <div class="card-header"><h3>Known Offenders</h3></div>
+      <table>
+        <tr><th>Channel</th><th>Times caught</th><th>Viewers stolen</th><th>Severity</th><th>Last seen</th></tr>
+        ${rows}
+      </table>
+    </div>`;
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
 function renderSettings() {
   document.getElementById('content').innerHTML = `
     <div class="page-title">Settings</div>
     <div class="page-sub">Manage your account and alert preferences</div>
     <div class="card">
       <div class="card-header"><h3>Account Details</h3></div>
-      <div style="padding:20px">
+      <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Full Name</div>
-            <div style="font-size:14px;color:white">${user.full_name}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Email</div>
-            <div style="font-size:14px;color:white">${user.email}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Organization</div>
-            <div style="font-size:14px;color:white">${user.org_name}</div>
-          </div>
-          <div>
-            <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Current Plan</div>
-            <div style="font-size:14px"><span class="badge b-${user.tier}">${user.tier.toUpperCase()}</span></div>
-          </div>
+          <div><div style="font-size:11px;color:#4a5a72;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Full Name</div><div style="font-size:14px;color:white">${user.full_name}</div></div>
+          <div><div style="font-size:11px;color:#4a5a72;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Email</div><div style="font-size:14px;color:white">${user.email}</div></div>
+          <div><div style="font-size:11px;color:#4a5a72;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Organization</div><div style="font-size:14px;color:white">${user.org_name}</div></div>
+          <div><div style="font-size:11px;color:#4a5a72;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Plan</div><div><span class="badge b-${user.tier}">${user.tier.toUpperCase()}</span></div></div>
         </div>
       </div>
     </div>
     <div class="card" style="margin-top:16px">
-      <div class="card-header"><h3>Telegram Alerts</h3></div>
-      <div style="padding:20px;font-size:13px;color:#6b7280;line-height:1.7">
-        <p>Telegram alerts are configured in your desktop app settings.</p>
-        <p>To set up Telegram: open the Livestrym desktop app → Settings tab → enter your Bot Token and Chat ID.</p>
-        <p style="margin-top:12px">Need help? Email us at <a href="mailto:hello@livestrym.io">hello@livestrym.io</a></p>
+      <div class="card-header"><h3>Alert Channels</h3></div>
+      <div class="card-body">
+        <div style="font-size:13px;color:#4a5a72;line-height:1.8">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:16px">✅</span>
+            <div><strong style="color:white">Email alerts</strong> — sent to ${user.email}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <span style="font-size:16px">✅</span>
+            <div><strong style="color:white">Telegram alerts</strong> — configure in desktop app settings</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;opacity:.4">
+            <span style="font-size:16px">🔒</span>
+            <div><strong style="color:white">WhatsApp alerts</strong> — available on Business plan</div>
+          </div>
+        </div>
       </div>
     </div>
+    ${user.tier === 'free' ? `
+    <div class="upgrade-banner" style="margin-top:16px">
+      <div>
+        <h3>Upgrade to Pro — $19/month</h3>
+        <p>Real-time threat map, one-click reporting, 3 team members, 30-day history.</p>
+      </div>
+      <a href="mailto:hello@livestrym.io?subject=Upgrade to Pro" class="btn btn-blue">Contact us to upgrade</a>
+    </div>` : ''}
     <div class="card" style="margin-top:16px">
       <div class="card-header"><h3>Danger Zone</h3></div>
-      <div style="padding:20px">
-        <button onclick="logout()" class="btn" style="background:#2d0a0a;color:#ef4444;border:1px solid #7f1d1d">Sign out of all devices</button>
+      <div class="card-body">
+        <button onclick="logout()" class="btn" style="background:#1a0505;color:#ef4444;border:1px solid #3d0a0a">Sign out</button>
       </div>
     </div>`;
 }
 
-function buildRows(detections) {
+// ── Helper: Live banner ───────────────────────────────────────────────────────
+function renderLiveBanner() {
+  return `<div class="live-banner">
+    <div class="live-banner-left">
+      <div class="live-dot"></div>
+      <div>
+        <div class="live-label">LIVE NOW</div>
+        <div class="live-title">${liveTitle || 'Stream in progress'}</div>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div class="live-viewers">${sessionThreats}</div>
+      <div class="live-viewers-label">threats caught this session</div>
+    </div>
+  </div>`;
+}
+
+function renderOfflineBanner() {
+  return `<div class="offline-banner">
+    <div class="offline-dot"></div>
+    <div class="offline-text">Your channel is offline — scanner is standing by and will activate when you go live</div>
+  </div>`;
+}
+
+// ── Helper: Impact box ────────────────────────────────────────────────────────
+function renderImpactBox(viewers, total) {
+  const estRevLost = Math.round(viewers * 0.03);
+  return `<div class="impact-box">
+    <div style="font-size:13px;color:#4a5a72;margin-right:8px">📊 Estimated impact across all detections:</div>
+    <div class="impact-item">
+      <div class="impact-num" style="color:#ef4444">${viewers.toLocaleString()}</div>
+      <div class="impact-label">Viewers stolen</div>
+    </div>
+    <div style="width:1px;height:36px;background:#1a2540"></div>
+    <div class="impact-item">
+      <div class="impact-num" style="color:#f59e0b">$${estRevLost}</div>
+      <div class="impact-label">Est. revenue lost</div>
+    </div>
+    <div style="width:1px;height:36px;background:#1a2540"></div>
+    <div class="impact-item">
+      <div class="impact-num">${total}</div>
+      <div class="impact-label">Incidents</div>
+    </div>
+  </div>`;
+}
+
+// ── Helper: Build table rows ──────────────────────────────────────────────────
+function buildRows(detections, compact) {
   if (!detections.length) {
-    return '<tr><td colspan="7" class="empty">No rebroadcasts detected yet.</td></tr>';
+    return `<tr><td colspan="7" class="empty">No rebroadcasts detected yet. Livestrym is watching.</td></tr>`;
   }
   return detections.map(d => {
-    const score = parseFloat(d.confidence_score || 0);
-    const cc    = score >= 0.85 ? 'conf-high' : 'conf-mid';
-    const time  = new Date(d.detected_at).toLocaleString();
+    const score    = parseFloat(d.confidence_score || 0);
+    const viewers  = parseInt(d.concurrent_viewers || 0);
+    const cc       = score >= 0.85 ? 'conf-high' : score >= 0.75 ? 'conf-medium' : 'conf-low';
+    const severity = score >= 0.85 ? '<span class="badge b-high">High</span>' :
+                     score >= 0.75 ? '<span class="badge b-medium">Medium</span>' :
+                     '<span class="badge b-low">Low</span>';
+    const time     = new Date(d.detected_at).toLocaleString();
+    const reportUrl = `https://www.youtube.com/watch?v=${d.stream_url.split('v=')[1] || ''}`;
+
+    if (compact) {
+      return `<tr>
+        <td><strong>${d.channel_name || 'Unknown'}</strong></td>
+        <td style="color:#4a5a72">${(d.stream_title||'').slice(0,40)}</td>
+        <td style="text-align:center">${viewers > 0 ? viewers.toLocaleString() : '?'}</td>
+        <td>${severity}</td>
+        <td style="font-size:12px;color:#4a5a72">${time}</td>
+        <td>
+          <a href="${d.stream_url}" target="_blank" class="btn btn-sm btn-gray">Open</a>
+        </td>
+      </tr>`;
+    }
+
     return `<tr>
-      <td>${d.channel_name || 'Unknown'}</td>
-      <td><a href="${d.stream_url}" target="_blank" style="color:#4d9de0">${(d.stream_title || '').slice(0,45)}</a></td>
-      <td style="text-align:center">${d.concurrent_viewers || '?'}</td>
-      <td class="${cc}" style="text-align:center">${(score * 100).toFixed(0)}%</td>
+      <td><strong>${d.channel_name || 'Unknown'}</strong></td>
+      <td><a href="${d.stream_url}" target="_blank" style="color:#4d9de0">${(d.stream_title||'').slice(0,40)}</a></td>
+      <td style="text-align:center">${viewers > 0 ? viewers.toLocaleString() : '?'}</td>
+      <td class="${cc}" style="text-align:center">${(score*100).toFixed(0)}%</td>
       <td style="text-align:center">${d.reported ? '✅' : '—'}</td>
-      <td style="font-size:12px;color:#6b7280">${time}</td>
-      <td><a href="${d.stream_url}" target="_blank" class="btn btn-sm btn-gray">Open</a></td>
+      <td style="font-size:12px;color:#4a5a72">${time}</td>
+      <td style="display:flex;gap:5px">
+        <a href="${d.stream_url}" target="_blank" class="btn btn-sm btn-gray">Open</a>
+        <a href="https://www.youtube.com/watch?v=${d.stream_url.split('watch?v=')[1]||''}" target="_blank" class="btn btn-sm btn-red">Report</a>
+      </td>
     </tr>`;
   }).join('');
 }
+
+// ── Auto-refresh ──────────────────────────────────────────────────────────────
+async function autoRefresh() {
+  await fetchDetections();
+  await checkStreamStatus();
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+autoRefresh();
+autoRefreshTimer = setInterval(autoRefresh, 30000); // refresh every 30s
 </script>
 </body>
 </html>
