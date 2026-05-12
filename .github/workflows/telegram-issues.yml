@@ -1,0 +1,135 @@
+name: GitHub → Telegram Alerts
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+
+  issue_comment:
+    types: [created]
+
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram Alert
+        shell: bash
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          RELEASE_APPROVER: ${{ vars.RELEASE_APPROVER || 'release-approver' }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          ACTOR: ${{ github.actor }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_URL: ${{ github.event.issue.html_url }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+          PR_MERGED: ${{ github.event.pull_request.merged }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          EVENT="${EVENT_NAME}"
+          ACTION="${EVENT_ACTION}"
+          TIMESTAMP=$(TZ=Africa/Nairobi date +"%Y-%m-%d %-I:%M %p EAT")
+          MESSAGE=""
+
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "Telegram secrets not configured. Skipping."
+            exit 0
+          fi
+
+          if [ "$EVENT" = "issues" ]; then
+
+            TITLE="${ISSUE_TITLE}"
+            URL="${ISSUE_URL}"
+
+            if [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'bug') }}" == "true" ]]; then
+              if [ "$ACTION" = "opened" ]; then
+                MESSAGE="🟢🪲 BUG OPENED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              elif [ "$ACTION" = "reopened" ]; then
+                MESSAGE="🟡♻️ BUG REOPENED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              elif [ "$ACTION" = "closed" ]; then
+                MESSAGE="🟣✅ BUG CLOSED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              fi
+            fi
+
+            if [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'qa') }}" == "true" ]] || \
+               [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'qa-request') }}" == "true" ]]; then
+              if [ "$ACTION" = "opened" ]; then
+                MESSAGE="🔵🧪 QA REQUEST OPENED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              elif [ "$ACTION" = "reopened" ]; then
+                MESSAGE="🟠🔁 QA REQUEST REOPENED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              elif [ "$ACTION" = "closed" ]; then
+                MESSAGE="🟢✅ QA REQUEST CLOSED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              fi
+            fi
+
+            if [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'sprint') }}" == "true" ]] && \
+               [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'planning') }}" == "true" ]]; then
+              if [ "$ACTION" = "opened" ]; then
+                MESSAGE="🟣📋 SPRINT CREATED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              fi
+            fi
+
+            if [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'sprint-active') }}" == "true" ]]; then
+              if [ "$ACTION" = "opened" ]; then
+                MESSAGE="🟡🛠️ SPRINT TASK CREATED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              elif [ "$ACTION" = "closed" ]; then
+                MESSAGE="🟢✅ SPRINT TASK COMPLETED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              fi
+            fi
+
+            if [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'production') }}" == "true" ]]; then
+              if [ "$ACTION" = "opened" ]; then
+                MESSAGE="🚀📦 PRODUCTION RELEASE CREATED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              elif [ "$ACTION" = "closed" ]; then
+                MESSAGE="🟣🚀 RELEASE CLOSED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+              fi
+            fi
+          fi
+
+          if [ "$EVENT" = "issue_comment" ]; then
+
+            TITLE="${ISSUE_TITLE}"
+            URL="${ISSUE_URL}"
+            COMMENT=$(echo "$COMMENT_BODY" | head -c 300)
+
+            if [[ "$ACTOR" == "$RELEASE_APPROVER" ]] && echo "$COMMENT_BODY" | grep -iq "declined\|reject\|not approved"; then
+              MESSAGE="🔴🛑 RELEASE DECLINED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+
+            elif [[ "$ACTOR" == "$RELEASE_APPROVER" ]] && echo "$COMMENT_BODY" | grep -iq "^approved"; then
+              MESSAGE="🟢🛡️ RELEASE APPROVED%0A$TITLE%0A$URL%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+
+            elif [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'bug') }}" == "true" ]]; then
+              MESSAGE="💬🪲 BUG COMMENT%0A$TITLE%0A$URL%0A---%0A$COMMENT%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+
+            elif [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'qa') }}" == "true" ]] || \
+                 [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'qa-request') }}" == "true" ]]; then
+              MESSAGE="💬🧪 QA COMMENT%0A$TITLE%0A$URL%0A---%0A$COMMENT%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+
+            elif [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'production') }}" == "true" ]]; then
+              MESSAGE="💬🚀 RELEASE COMMENT%0A$TITLE%0A$URL%0A---%0A$COMMENT%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+
+            elif [[ "${{ contains(github.event.issue.labels.*.name || fromJSON('[]'), 'sprint-active') }}" == "true" ]]; then
+              MESSAGE="💬🛠️ SPRINT TASK COMMENT%0A$TITLE%0A$URL%0A---%0A$COMMENT%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+            fi
+          fi
+
+          if [ "$EVENT" = "pull_request" ]; then
+
+            if [ "$PR_MERGED" = "true" ] && [ "$PR_BASE" = "main" ]; then
+              MESSAGE="🟢🔀 PR MERGED TO MAIN%0A${PR_TITLE}%0A${PR_URL}%0A---%0A👤 $ACTOR%0A🕒 $TIMESTAMP"
+            fi
+          fi
+
+          if [ -n "$MESSAGE" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d chat_id="${TELEGRAM_CHAT_ID}" \
+              -d text="${MESSAGE}"
+          fi

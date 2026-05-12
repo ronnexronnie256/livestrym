@@ -1,0 +1,84 @@
+name: 🐞 Bug Report
+description: Report a defect or unexpected behavior
+title: "[BUG] "
+labels:
+  - bug
+  - qa
+
+body:
+  - type: checkboxes
+    id: platform
+    attributes:
+      label: Platform(s) Affected
+      description: Select all platforms where this issue occurs
+      options:
+        - label: Android
+        - label: iOS
+        - label: Web
+        - label: Backend / API
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - P0 – Blocker (Crash / Data Loss)
+        - P1 – Critical (Core flow broken)
+        - P2 – Major (Workaround exists)
+        - P3 – Minor (UI / Cosmetic)
+    validations:
+      required: true
+
+  - type: input
+    id: build
+    attributes:
+      label: "Build / Version"
+      placeholder: "e.g. 4227, v1.3.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Bug Summary
+      description: One clear sentence describing the issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Provide clear, numbered steps
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Result
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Test Environment
+      description: Device, OS, browser, network, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs / Screenshots / Videos
+      description: Attach any supporting evidence
