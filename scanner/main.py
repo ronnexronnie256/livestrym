@@ -24,6 +24,7 @@ CHANNEL_ID         = os.getenv("PHANEROO_CHANNEL_ID", "UCrEG2rXLpLVSZJntGuHV8fw"
 TELEGRAM_TOKEN     = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID   = os.getenv("TELEGRAM_CHAT_ID")
 SCAN_INTERVAL      = int(os.getenv("SCAN_INTERVAL", "60"))
+SCANNER_SECRET     = os.getenv("SCANNER_SECRET", "")       # must match API SCANNER_SECRET
 SAMPLE_DURATION    = 45
 MATCH_THRESHOLD    = 0.70
 
@@ -325,8 +326,13 @@ def send_telegram(match: dict):
         log.error(f"Telegram failed: {e}")
 
 def log_detection_to_api(match: dict):
-    """Log a confirmed rebroadcast to the Livestrym API."""
+    """Log a confirmed rebroadcast to the Livestrym API.
+    Sends X-Scanner-Secret header — required by the secured detection endpoint.
+    """
     api_url = os.getenv("API_URL", "http://localhost:8000")
+    if not SCANNER_SECRET:
+        log.error("SCANNER_SECRET not set — cannot call detection API. Set env var.")
+        return
     try:
         r = requests.post(
             f"{api_url}/api/detections",
@@ -339,10 +345,13 @@ def log_detection_to_api(match: dict):
                 "concurrent_viewers": str(match.get("concurrent_viewers", "?")),
                 "confidence_score":   str(match.get("combined_score", 0)),
             },
+            headers={"X-Scanner-Secret": SCANNER_SECRET},
             timeout=10
         )
         if r.status_code == 200:
             log.info("Detection logged to API")
+        elif r.status_code == 401:
+            log.error("Detection API rejected secret — check SCANNER_SECRET env var matches API")
         else:
             log.warning(f"API log failed: {r.status_code}")
     except Exception as e:

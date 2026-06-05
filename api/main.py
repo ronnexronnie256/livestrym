@@ -10,7 +10,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 from sqlalchemy import create_engine, Column, String, Boolean, DateTime, Enum, Integer, ForeignKey
@@ -33,6 +33,7 @@ TOKEN_EXPIRE_H = 24
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY", "")
 ADMIN_PASSWORD  = os.getenv("ADMIN_PASSWORD", "livestrym-admin-2025")
 ADMIN_EMAIL     = os.getenv("ADMIN_EMAIL", "")
+SCANNER_SECRET  = os.getenv("SCANNER_SECRET", "")          # required — set in Railway env vars
 SENDGRID_KEY    = os.getenv("SENDGRID_API_KEY", "")
 FROM_EMAIL      = os.getenv("FROM_EMAIL", "hello@livestrym.io")
 
@@ -293,13 +294,28 @@ app = FastAPI(
     redoc_url=None,
 )
 
+# ── CORS — tighten in production (replace * with your actual frontend domain) ──
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[os.getenv("FRONTEND_URL", "*")],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Scanner-Secret"],
 )
+
+# ── Security headers — applied to every response ──────────────────────────────
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Content-Type-Options"]    = "nosniff"
+    response.headers["X-Frame-Options"]           = "DENY"
+    response.headers["X-XSS-Protection"]          = "1; mode=block"
+    response.headers["Referrer-Policy"]           = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"]        = "camera=(), microphone=(), geolocation=()"
+    # Remove server fingerprint
+    response.headers.pop("server", None)
+    return response
 
 @app.on_event("startup")
 def startup():
@@ -401,8 +417,16 @@ def me(token: str, db: Session = Depends(get_db)):
 
 # ── Detection Routes ──────────────────────────────────────────────────────────
 @app.post("/api/detections")
-def log_detection(data: DetectionIn, db: Session = Depends(get_db)):
-    """Called by the scanner when a rebroadcast is confirmed."""
+def log_detection(
+    data: DetectionIn,
+    x_scanner_secret: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Called by the scanner when a rebroadcast is confirmed.
+    Requires X-Scanner-Secret header — only the internal scanner may call this.
+    """
+    if not SCANNER_SECRET or x_scanner_secret != SCANNER_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized.")
     detection = Detection(
         stream_url          = data.stream_url,
         stream_title        = data.stream_title,
@@ -438,13 +462,22 @@ def get_detections(token: str, db: Session = Depends(get_db)):
     ]
 
 # ── Admin Routes ──────────────────────────────────────────────────────────────
-def check_admin(password: str):
-    if password != ADMIN_PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid admin password.")
+def check_admin(authorization: str = Header(None)):
+    """Validates admin token from Authorization: Bearer <token> header.
+    Never accept credentials in query params — they appear in server logs.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing authorization header.")
+    token = authorization.removeprefix("Bearer ").strip()
+    if token != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Invalid admin token.")
 
 @app.get("/api/admin/users")
-def admin_get_users(password: str, db: Session = Depends(get_db)):
-    check_admin(password)
+def admin_get_users(
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    check_admin(authorization)
     users = db.query(User).order_by(User.created_at.desc()).all()
     return [
         {"id": u.id, "full_name": u.full_name, "email": u.email,
@@ -454,8 +487,12 @@ def admin_get_users(password: str, db: Session = Depends(get_db)):
     ]
 
 @app.post("/api/admin/approve/{user_id}")
-def admin_approve(user_id: str, password: str, db: Session = Depends(get_db)):
-    check_admin(password)
+def admin_approve(
+    user_id: str,
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    check_admin(authorization)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -466,8 +503,12 @@ def admin_approve(user_id: str, password: str, db: Session = Depends(get_db)):
     return {"message": f"Approved: {user.email}"}
 
 @app.post("/api/admin/reject/{user_id}")
-def admin_reject(user_id: str, password: str, db: Session = Depends(get_db)):
-    check_admin(password)
+def admin_reject(
+    user_id: str,
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    check_admin(authorization)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -476,8 +517,13 @@ def admin_reject(user_id: str, password: str, db: Session = Depends(get_db)):
     return {"message": f"Rejected: {user.email}"}
 
 @app.post("/api/admin/set-tier/{user_id}")
-def admin_set_tier(user_id: str, tier: str, password: str, db: Session = Depends(get_db)):
-    check_admin(password)
+def admin_set_tier(
+    user_id: str,
+    tier: str,
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    check_admin(authorization)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -486,8 +532,11 @@ def admin_set_tier(user_id: str, tier: str, password: str, db: Session = Depends
     return {"message": f"Tier updated to {tier} for {user.email}"}
 
 @app.get("/api/admin/detections")
-def admin_get_detections(password: str, db: Session = Depends(get_db)):
-    check_admin(password)
+def admin_get_detections(
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    check_admin(authorization)
     detections = db.query(Detection).order_by(Detection.detected_at.desc()).limit(200).all()
     return [
         {"id": d.id, "stream_url": d.stream_url, "channel_name": d.channel_name,
