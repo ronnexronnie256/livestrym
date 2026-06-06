@@ -27,9 +27,12 @@ load_dotenv()
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DATABASE_URL   = os.getenv("DATABASE_URL", "sqlite:///./livestrym.db")
-# Railway sometimes provides postgres:// — SQLAlchemy 2.x requires postgresql://
+# Railway gives postgres:// — SQLAlchemy needs postgresql://
+# Also switch driver to pg8000 (pure Python — no libpq system dependency)
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+pg8000://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+pg8000://", 1)
 SECRET_KEY     = os.getenv("SECRET_KEY", "change-this-in-production")
 ALGORITHM      = "HS256"
 TOKEN_EXPIRE_H = 24

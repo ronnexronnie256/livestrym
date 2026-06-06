@@ -1,11 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# ROOT requirements.txt — Livestrym API
-# psycopg2-binary MUST be first — installs before sqlalchemy
-# resolves to it as the postgres driver
+# Livestrym API — requirements.txt
+# DRIVER: pg8000 (pure Python — zero system deps, zero libpq)
+# Replaces psycopg2-binary which requires libpq.so.5
 # ─────────────────────────────────────────────────────────────
 
-# ── POSTGRES DRIVER — must be first, must be binary ──────────
-psycopg2-binary==2.9.9
+# ── POSTGRES DRIVER — pure Python, no C libs, no libpq ───────
+pg8000==1.31.2
 
 # ── Web framework ─────────────────────────────────────────────
 fastapi==0.115.0
