@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────
+# scanner/Dockerfile
+# Lean scanner — no postgres driver, no fastapi
+# System binaries: ffmpeg + chromaprint only
+# ─────────────────────────────────────────────────────────────
+FROM python:3.13-slim
+
+# System binaries — NOT pip packages
+# ffmpeg:              extracts audio/video segments
+# libchromaprint-tools: provides fpcalc binary for fingerprinting
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libchromaprint-tools \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify both binaries exist before proceeding
+RUN ffmpeg -version | head -1
+RUN fpcalc --version
+
+WORKDIR /app
+
+# Copy ONLY scanner requirements — NOT root requirements.txt
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Verify no psycopg2 was installed (sanity check)
+RUN pip show psycopg2 2>&1 | grep -q "not found" || \
+    pip show psycopg2-binary 2>&1 | grep -q "not found" || \
+    echo "WARNING: psycopg2 found in scanner — should not be here"
+
+# Copy scanner code
+COPY . .
+
+# Non-root user
+RUN useradd -m -u 1000 scanner && chown -R scanner:scanner /app
+USER scanner
+
+CMD ["python", "main.py"]
