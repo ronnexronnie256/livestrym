@@ -319,8 +319,11 @@ async def security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"]          = "1; mode=block"
     response.headers["Referrer-Policy"]           = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"]        = "camera=(), microphone=(), geolocation=()"
-    # Remove server fingerprint
-    response.headers.pop("server", None)
+    # Remove server fingerprint — MutableHeaders uses del not pop
+    try:
+        del response.headers["server"]
+    except KeyError:
+        pass
     return response
 
 @app.on_event("startup")
