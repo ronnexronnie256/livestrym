@@ -1,13 +1,21 @@
 # ─────────────────────────────────────────────────────────────
-# nixpacks.toml — API service
-# Alternative to Dockerfile if staying on Nixpacks
-# Place at repo root or in api/ directory
+# nixpacks.toml — API service (place at repo ROOT)
+# Installs libpq system library so psycopg2-binary works
 # ─────────────────────────────────────────────────────────────
+
 [phases.setup]
-nixPkgs = ["python313", "gcc", "postgresql_16"]
+nixPkgs = [
+    "python313",
+    "gcc",
+    "postgresql_16",    # provides libpq system library
+]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = [
+    # Force binary version first before rest of requirements
+    "pip install psycopg2-binary==2.9.9",
+    "pip install -r requirements.txt"
+]
 
 [start]
 cmd = "uvicorn api.main:app --host 0.0.0.0 --port $PORT"

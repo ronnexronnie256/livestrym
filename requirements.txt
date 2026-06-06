@@ -1,8 +1,11 @@
 # ─────────────────────────────────────────────────────────────
-# Livestrym ROOT requirements.txt
-# Used by Railway when building from repo root
-# Points to the API service requirements
+# ROOT requirements.txt — Livestrym API
+# psycopg2-binary MUST be first — installs before sqlalchemy
+# resolves to it as the postgres driver
 # ─────────────────────────────────────────────────────────────
+
+# ── POSTGRES DRIVER — must be first, must be binary ──────────
+psycopg2-binary==2.9.9
 
 # ── Web framework ─────────────────────────────────────────────
 fastapi==0.115.0
@@ -10,7 +13,6 @@ uvicorn[standard]==0.30.6
 
 # ── Database ──────────────────────────────────────────────────
 sqlalchemy==2.0.36
-psycopg2-binary==2.9.9           # FIX: was missing — caused ModuleNotFoundError
 python-dotenv==1.0.1
 
 # ── Auth ──────────────────────────────────────────────────────
