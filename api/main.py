@@ -330,10 +330,82 @@ async def security_headers(request: Request, call_next):
 def startup():
     Base.metadata.create_all(bind=engine)
     log.info("Livestrym API started. Database ready.")
+    # ── Seed admin account ────────────────────────────────────────────────────
+    _seed_admin()
+
+def _seed_admin():
+    """Creates the admin account on first startup if it doesn't exist.
+    Uses ADMIN_EMAIL and ADMIN_PASSWORD from environment variables.
+    Safe to call multiple times — skips if admin already exists.
+    """
+    if not ADMIN_EMAIL:
+        log.warning("ADMIN_EMAIL not set — skipping admin seed. Set it in Railway env vars.")
+        return
+    db = SessionLocal()
+    try:
+        existing = db.query(User).filter(User.email == ADMIN_EMAIL).first()
+        if existing:
+            log.info(f"Admin account already exists: {ADMIN_EMAIL}")
+            return
+        admin = User(
+            id              = str(uuid.uuid4()),
+            full_name       = "Livestrym Admin",
+            email           = ADMIN_EMAIL,
+            hashed_password = hash_password(ADMIN_PASSWORD),
+            org_name        = "Livestrym",
+            channel_url     = "https://livestrym.io",
+            channel_id      = "admin",
+            account_type    = "admin",
+            tier            = TierEnum.business,
+            status          = StatusEnum.approved,
+            is_active       = True,
+            verified_at     = datetime.now(timezone.utc),
+        )
+        db.add(admin)
+        db.commit()
+        log.info(f"Admin account created: {ADMIN_EMAIL}")
+    except Exception as e:
+        log.error(f"Admin seed failed: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 @app.get("/api/health")
 def health():
     return {"status": "ok", "service": "Livestrym API", "version": "1.0.0"}
+
+@app.post("/api/admin/seed")
+def seed_database(request: Request, db: Session = Depends(get_db)):
+    """One-time endpoint to seed initial data.
+    Requires admin auth. Safe to call multiple times — skips existing records.
+    """
+    check_admin(request)
+    results = []
+
+    # Re-run admin seed in case it failed on startup
+    existing_admin = db.query(User).filter(User.email == ADMIN_EMAIL).first()
+    if existing_admin:
+        results.append(f"Admin already exists: {ADMIN_EMAIL}")
+    else:
+        _seed_admin()
+        results.append(f"Admin created: {ADMIN_EMAIL}")
+
+    return {"seeded": True, "results": results}
+
+@app.get("/api/admin/stats")
+def admin_stats(request: Request, db: Session = Depends(get_db)):
+    """Dashboard stats for admin — total users, detections, pending approvals."""
+    check_admin(request)
+    total_users      = db.query(User).count()
+    pending_users    = db.query(User).filter(User.status == StatusEnum.pending).count()
+    approved_users   = db.query(User).filter(User.status == StatusEnum.approved).count()
+    total_detections = db.query(Detection).count()
+    return {
+        "total_users":      total_users,
+        "pending_users":    pending_users,
+        "approved_users":   approved_users,
+        "total_detections": total_detections,
+    }
 
 # ── Auth Routes ───────────────────────────────────────────────────────────────
 @app.post("/api/signup")
@@ -471,10 +543,12 @@ def get_detections(token: str, db: Session = Depends(get_db)):
     ]
 
 # ── Admin Routes ──────────────────────────────────────────────────────────────
-def check_admin(authorization: str = Header(None)):
+def check_admin(request: Request):
     """Validates admin token from Authorization: Bearer <token> header.
-    Never accept credentials in query params — they appear in server logs.
+    Reads directly from request object — bypasses FastAPI header parsing issues.
     """
+    authorization = request.headers.get("Authorization") or \
+                    request.headers.get("authorization")
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing authorization header.")
     token = authorization.removeprefix("Bearer ").strip()
@@ -483,10 +557,10 @@ def check_admin(authorization: str = Header(None)):
 
 @app.get("/api/admin/users")
 def admin_get_users(
-    authorization: str = Header(None),
+    request: Request,
     db: Session = Depends(get_db)
 ):
-    check_admin(authorization)
+    check_admin(request)
     users = db.query(User).order_by(User.created_at.desc()).all()
     return [
         {"id": u.id, "full_name": u.full_name, "email": u.email,
@@ -498,10 +572,10 @@ def admin_get_users(
 @app.post("/api/admin/approve/{user_id}")
 def admin_approve(
     user_id: str,
-    authorization: str = Header(None),
+    request: Request,
     db: Session = Depends(get_db)
 ):
-    check_admin(authorization)
+    check_admin(request)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -514,10 +588,10 @@ def admin_approve(
 @app.post("/api/admin/reject/{user_id}")
 def admin_reject(
     user_id: str,
-    authorization: str = Header(None),
+    request: Request,
     db: Session = Depends(get_db)
 ):
-    check_admin(authorization)
+    check_admin(request)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -529,10 +603,10 @@ def admin_reject(
 def admin_set_tier(
     user_id: str,
     tier: str,
-    authorization: str = Header(None),
+    request: Request,
     db: Session = Depends(get_db)
 ):
-    check_admin(authorization)
+    check_admin(request)
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -542,10 +616,10 @@ def admin_set_tier(
 
 @app.get("/api/admin/detections")
 def admin_get_detections(
-    authorization: str = Header(None),
+    request: Request,
     db: Session = Depends(get_db)
 ):
-    check_admin(authorization)
+    check_admin(request)
     detections = db.query(Detection).order_by(Detection.detected_at.desc()).limit(200).all()
     return [
         {"id": d.id, "stream_url": d.stream_url, "channel_name": d.channel_name,
