@@ -1,0 +1,13 @@
+# ─────────────────────────────────────────────────────────────
+# nixpacks.toml — API service
+# Alternative to Dockerfile if staying on Nixpacks
+# Place at repo root or in api/ directory
+# ─────────────────────────────────────────────────────────────
+[phases.setup]
+nixPkgs = ["python313", "gcc", "postgresql_16"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "uvicorn api.main:app --host 0.0.0.0 --port $PORT"

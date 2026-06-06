@@ -1,0 +1,12 @@
+# ─────────────────────────────────────────────────────────────
+# nixpacks.toml — Scanner service
+# Place in scanner/ directory
+# ─────────────────────────────────────────────────────────────
+[phases.setup]
+nixPkgs = ["python313", "ffmpeg", "chromaprint", "gcc"]
+
+[phases.install]
+cmds = ["pip install -r scanner/requirements.txt"]
+
+[start]
+cmd = "python scanner/main.py"

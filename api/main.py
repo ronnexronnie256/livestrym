@@ -27,6 +27,9 @@ load_dotenv()
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DATABASE_URL   = os.getenv("DATABASE_URL", "sqlite:///./livestrym.db")
+# Railway sometimes provides postgres:// — SQLAlchemy 2.x requires postgresql://
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 SECRET_KEY     = os.getenv("SECRET_KEY", "change-this-in-production")
 ALGORITHM      = "HS256"
 TOKEN_EXPIRE_H = 24

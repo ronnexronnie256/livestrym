@@ -1,16 +1,16 @@
 # ─────────────────────────────────────────────────────────────
-# Livestrym ROOT requirements.txt
-# Used by Railway when building from repo root
-# Points to the API service requirements
+# Livestrym API — requirements.txt
+# Python 3.13 · Railway deployment
+# Last updated: June 2026
 # ─────────────────────────────────────────────────────────────
 
 # ── Web framework ─────────────────────────────────────────────
 fastapi==0.115.0
-uvicorn[standard]==0.30.6
+uvicorn[standard]==0.30.6        # [standard] adds uvloop + httptools for performance
 
 # ── Database ──────────────────────────────────────────────────
 sqlalchemy==2.0.36
-psycopg2-binary==2.9.9           # FIX: was missing — caused ModuleNotFoundError
+psycopg2-binary==2.9.9           # Postgres driver — binary = no system build tools needed
 python-dotenv==1.0.1
 
 # ── Auth ──────────────────────────────────────────────────────
@@ -18,24 +18,19 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
 
-# ── HTTP ──────────────────────────────────────────────────────
+# ── HTTP client ───────────────────────────────────────────────
 requests==2.32.3
-httpx==0.27.0
+httpx==0.27.0                    # async HTTP — needed for SRS API calls later
 
 # ── Email ─────────────────────────────────────────────────────
 sendgrid==6.11.0
-email-validator==2.2.0
+email-validator==2.2.0           # required by pydantic EmailStr
+
+# ── Notifications ─────────────────────────────────────────────
+# (WhatsApp, Africa's Talking added in Sprint 2)
 
 # ── Google API ────────────────────────────────────────────────
 google-api-python-client==2.118.0
 
-# ── Media ─────────────────────────────────────────────────────
-yt-dlp>=2024.1.1
-librosa==0.10.2
-numpy>=1.26.0
-soundfile>=0.12.1
-imagehash==4.3.1
-Pillow>=10.0.0
-
 # ── Utils ─────────────────────────────────────────────────────
-python-multipart==0.0.9
+python-multipart==0.0.9          # required for FastAPI form data / file uploads
