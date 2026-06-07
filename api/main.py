@@ -89,7 +89,16 @@ class User(Base):
     is_active        = Column(Boolean, default=True)
     created_at       = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     verified_at      = Column(DateTime, nullable=True)
-    detections       = relationship("Detection", back_populates="owner", cascade="all, delete-orphan")
+    # ── Stream key (for SRS ingest — Sprint 2) ────────────────
+    stream_key       = Column(String, nullable=True,
+                              default=lambda: __import__("secrets").token_urlsafe(32))
+    # ── Notification preferences ──────────────────────────────
+    telegram_chat_id = Column(String, nullable=True)
+    whatsapp_number  = Column(String, nullable=True)
+    webhook_url      = Column(String, nullable=True)
+    # ── Relationships ─────────────────────────────────────────
+    detections       = relationship("Detection", back_populates="owner",
+                                    cascade="all, delete-orphan")
 
 class Detection(Base):
     __tablename__ = "detections"
@@ -290,6 +299,7 @@ class DetectionIn(BaseModel):
     thumbnail_url:       Optional[str] = None
     concurrent_viewers:  Optional[str] = None
     confidence_score:    Optional[str] = None
+    owner_id:            Optional[str] = None   # which customer's content was stolen
 
 # ── App ───────────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -374,6 +384,42 @@ def _seed_admin():
 def health():
     return {"status": "ok", "service": "Livestrym API", "version": "1.0.0"}
 
+@app.get("/api/scanner/channels")
+def scanner_get_channels(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Returns all active protected channels for the ARQ scanner worker.
+    Called every 5 minutes by the worker to build the channel registry.
+    Requires X-Scanner-Secret header.
+    """
+    secret = request.headers.get("X-Scanner-Secret", "")
+    if not SCANNER_SECRET or secret != SCANNER_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized.")
+
+    users = db.query(User).filter(
+        User.status == StatusEnum.approved,
+        User.is_active == True
+    ).all()
+
+    channels = []
+    for user in users:
+        if user.channel_id and user.channel_id != "admin":
+            channels.append({
+                "channel_id":   user.channel_id,
+                "channel_name": user.org_name or user.full_name,
+                "owner_id":     user.id,
+                "channel_url":  user.channel_url or "",
+                "keywords":     [
+                    user.org_name,
+                    f"{user.org_name} live",
+                    f"{user.org_name} service",
+                ] if user.org_name else ["livestream"],
+            })
+
+    log.info(f"Scanner registry: {len(channels)} active channels")
+    return channels
+
 @app.post("/api/admin/seed")
 def seed_database(request: Request, db: Session = Depends(get_db)):
     """One-time endpoint to seed initial data.
@@ -392,7 +438,22 @@ def seed_database(request: Request, db: Session = Depends(get_db)):
 
     return {"seeded": True, "results": results}
 
-@app.get("/api/admin/stats")
+@app.post("/api/admin/reset-password")
+def reset_admin_password(request: Request, db: Session = Depends(get_db)):
+    """Resets admin account password to match current ADMIN_PASSWORD env var.
+    Use this when ADMIN_PASSWORD env var changes after the account was seeded.
+    Requires the CURRENT ADMIN_PASSWORD in the Authorization header to execute.
+    After use, remove or disable this endpoint.
+    """
+    check_admin(request)
+    admin = db.query(User).filter(User.email == ADMIN_EMAIL).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin account not found.")
+    admin.hashed_password = hash_password(ADMIN_PASSWORD)
+    db.commit()
+    log.info(f"Admin password reset for: {ADMIN_EMAIL}")
+    return {"message": f"Password reset for {ADMIN_EMAIL}. Login with new ADMIN_PASSWORD."}
+
 def admin_stats(request: Request, db: Session = Depends(get_db)):
     """Dashboard stats for admin — total users, detections, pending approvals."""
     check_admin(request)
@@ -484,17 +545,59 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 @app.get("/api/me")
 def me(token: str, db: Session = Depends(get_db)):
     user = get_current_user(token, db)
+    detection_count = db.query(Detection).filter(
+        Detection.owner_id == user.id
+    ).count()
     return {
-        "id":           user.id,
-        "full_name":    user.full_name,
-        "email":        user.email,
-        "org_name":     user.org_name,
-        "channel_url":  user.channel_url,
-        "tier":         user.tier.value,
-        "account_type": user.account_type,
-        "status":       user.status.value,
-        "created_at":   user.created_at.isoformat(),
+        "id":              user.id,
+        "full_name":       user.full_name,
+        "email":           user.email,
+        "org_name":        user.org_name,
+        "channel_url":     user.channel_url,
+        "channel_id":      user.channel_id,
+        "tier":            user.tier.value,
+        "account_type":    user.account_type,
+        "status":          user.status.value,
+        "stream_key":      user.stream_key,
+        "telegram_chat_id": user.telegram_chat_id,
+        "whatsapp_number": user.whatsapp_number,
+        "detection_count": detection_count,
+        "created_at":      user.created_at.isoformat(),
     }
+
+# ── User Settings Routes ──────────────────────────────────────────────────────
+class NotificationSettings(BaseModel):
+    telegram_chat_id: Optional[str] = None
+    whatsapp_number:  Optional[str] = None
+    webhook_url:      Optional[str] = None
+
+@app.put("/api/me/notifications")
+def update_notifications(
+    data: NotificationSettings,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Update notification channel preferences."""
+    user = get_current_user(token, db)
+    if data.telegram_chat_id is not None:
+        user.telegram_chat_id = data.telegram_chat_id
+    if data.whatsapp_number is not None:
+        user.whatsapp_number = data.whatsapp_number
+    if data.webhook_url is not None:
+        user.webhook_url = data.webhook_url
+    db.commit()
+    return {"message": "Notification settings updated."}
+
+@app.post("/api/me/rotate-stream-key")
+def rotate_stream_key(token: str, db: Session = Depends(get_db)):
+    """Generate a new stream key. Old key immediately invalidated."""
+    import secrets as sec
+    user = get_current_user(token, db)
+    user.stream_key = sec.token_urlsafe(32)
+    db.commit()
+    log.info(f"Stream key rotated for {user.email}")
+    return {"stream_key": user.stream_key,
+            "message": "Stream key rotated. Update your encoder settings."}
 
 # ── Detection Routes ──────────────────────────────────────────────────────────
 @app.post("/api/detections")
@@ -508,7 +611,16 @@ def log_detection(
     """
     if not SCANNER_SECRET or x_scanner_secret != SCANNER_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized.")
+
+    # Find owner by owner_id or by channel_id match
+    owner_id = data.owner_id
+    if not owner_id and data.channel_id:
+        user = db.query(User).filter(User.channel_id == data.channel_id).first()
+        if user:
+            owner_id = user.id
+
     detection = Detection(
+        owner_id            = owner_id,
         stream_url          = data.stream_url,
         stream_title        = data.stream_title,
         channel_name        = data.channel_name,
@@ -525,9 +637,11 @@ def log_detection(
 
 @app.get("/api/detections")
 def get_detections(token: str, db: Session = Depends(get_db)):
-    """Get all detections for the logged-in user's org."""
-    get_current_user(token, db)
-    detections = db.query(Detection).order_by(Detection.detected_at.desc()).limit(100).all()
+    """Get detections for the logged-in user only — filtered by owner_id."""
+    user = get_current_user(token, db)
+    detections = db.query(Detection).filter(
+        Detection.owner_id == user.id
+    ).order_by(Detection.detected_at.desc()).limit(100).all()
     return [
         {
             "id":                  d.id,
@@ -538,6 +652,7 @@ def get_detections(token: str, db: Session = Depends(get_db)):
             "confidence_score":    d.confidence_score,
             "detected_at":         d.detected_at.isoformat(),
             "reported":            d.reported,
+            "thumbnail_url":       d.thumbnail_url,
         }
         for d in detections
     ]
