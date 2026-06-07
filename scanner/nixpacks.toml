@@ -1,18 +1,16 @@
-# ─────────────────────────────────────────────────────────────
 # scanner/nixpacks.toml
-# Place this file inside the scanner/ folder in your repo
-# This tells Railway exactly how to build the scanner service
-# ─────────────────────────────────────────────────────────────
+# Place this file inside the scanner/ folder
+# Tells Railway: use these system packages + this requirements.txt + this start command
 
 [phases.setup]
 nixPkgs = [
     "python313",
-    "ffmpeg",           # segment extraction from HLS streams
-    "chromaprint",      # fpcalc binary for audio fingerprinting
+    "ffmpeg",
+    "chromaprint",
 ]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["pip install --no-cache-dir -r requirements.txt"]
 
 [start]
 cmd = "python main.py"

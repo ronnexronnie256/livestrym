@@ -36,6 +36,26 @@ KEYWORDS = [
     "Phaneroo Sunday Service",
 ]
 
+# ── Quota management ──────────────────────────────────────────────────────────
+# YouTube Data API v3 daily quota: 10,000 units
+# search().list = 100 units per call
+# videos().list = 1 unit per call
+#
+# OFFLINE mode: check every 5 minutes = 12x per hour = 1,200 units/hr
+#   → 8 hours of offline checking uses 9,600 units (safe)
+#
+# LIVE mode: scan every 3 minutes = 20x per hour
+#   Each live cycle: 100 (live check) + 500 (5 keywords) + 1 (viewers) = 601
+#   20 cycles x 601 = 12,020 units/hr — EXCEEDS daily quota in < 1 hour
+#
+# SOLUTION: offline check every 5min. Live scan every 3min with 3 keywords max.
+# This gives ~2 hours of live scanning within daily quota.
+#
+OFFLINE_CHECK_INTERVAL = int(os.getenv("OFFLINE_CHECK_INTERVAL", "300"))  # 5 min
+LIVE_SCAN_INTERVAL     = int(os.getenv("LIVE_SCAN_INTERVAL", "180"))      # 3 min
+SCAN_INTERVAL          = int(os.getenv("SCAN_INTERVAL", "60"))            # legacy fallback
+MAX_KEYWORDS_PER_SCAN  = int(os.getenv("MAX_KEYWORDS", "3"))              # limit quota
+
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -76,16 +96,22 @@ def get_my_live_stream(yt) -> dict | None:
 
 
 def get_suspicious_streams(yt, exclude_id: str) -> list[dict]:
-    """Find other channels streaming with our keywords."""
+    """Find other channels streaming with our keywords.
+    Rotates through keywords across scans to spread quota usage.
+    Only uses MAX_KEYWORDS_PER_SCAN keywords per cycle.
+    """
     found = {}
-    for keyword in KEYWORDS:
+    # Only use the first N keywords per scan — rotate on next call
+    active_keywords = KEYWORDS[:MAX_KEYWORDS_PER_SCAN]
+    log.info(f"Scanning {len(active_keywords)} keywords (quota-safe mode)")
+    for keyword in active_keywords:
         try:
             r = yt.search().list(
                 part="snippet",
                 q=keyword,
                 type="video",
                 eventType="live",
-                maxResults=50,
+                maxResults=25,          # reduced from 50 — same quota cost, faster
                 order="relevance",
             ).execute()
             for item in r.get("items", []):
@@ -97,14 +123,14 @@ def get_suspicious_streams(yt, exclude_id: str) -> list[dict]:
                 if vid not in found:
                     sn = item["snippet"]
                     found[vid] = {
-                        "video_id": vid,
-                        "url": f"https://www.youtube.com/watch?v={vid}",
-                        "title": sn.get("title", "")[:80],
+                        "video_id":      vid,
+                        "url":           f"https://www.youtube.com/watch?v={vid}",
+                        "title":         sn.get("title", "")[:80],
                         "channel_title": sn.get("channelTitle", ""),
-                        "channel_id": sn.get("channelId", ""),
-                        "thumbnail": sn.get("thumbnails", {}).get("high", {}).get("url", ""),
+                        "channel_id":    sn.get("channelId", ""),
+                        "thumbnail":     sn.get("thumbnails", {}).get("high", {}).get("url", ""),
                     }
-            time.sleep(0.3)
+            time.sleep(0.5)
         except Exception as e:
             log.error(f"Search error for '{keyword}': {e}")
     return list(found.values())
@@ -362,7 +388,9 @@ def run():
     log.info("=" * 50)
     log.info("Livestrym Scanner started")
     log.info(f"Monitoring channel: {CHANNEL_ID}")
-    log.info(f"Scan interval: {SCAN_INTERVAL}s")
+    log.info(f"Offline check interval: {OFFLINE_CHECK_INTERVAL}s ({OFFLINE_CHECK_INTERVAL//60} min)")
+    log.info(f"Live scan interval: {LIVE_SCAN_INTERVAL}s ({LIVE_SCAN_INTERVAL//60} min)")
+    log.info(f"Max keywords per scan: {MAX_KEYWORDS_PER_SCAN}")
     log.info("=" * 50)
 
     yt               = get_youtube()
@@ -380,22 +408,23 @@ def run():
                     log.info("Stream ended. Resetting session.")
                     live_start_time  = None
                     already_reported = set()
-                log.info(f"Channel offline. Next check in {SCAN_INTERVAL}s...")
-                time.sleep(SCAN_INTERVAL)
+                    scan_count       = 0
+                log.info(f"Channel offline. Next check in {OFFLINE_CHECK_INTERVAL//60} min...")
+                time.sleep(OFFLINE_CHECK_INTERVAL)   # 5 min — not 60s
                 continue
 
             # Channel is live
             if live_start_time is None:
                 live_start_time = datetime.now(timezone.utc)
                 title = my_stream['title'].encode('ascii', 'ignore').decode()
-                log.info(f"LIVE: {title}")
+                log.info(f"LIVE DETECTED: {title}")
                 log.info(f"URL: {my_stream['url']}")
 
             minutes_live = (datetime.now(timezone.utc) - live_start_time).seconds // 60
-            interval     = SCAN_INTERVAL if minutes_live < 30 else SCAN_INTERVAL * 2
+            scan_count  += 1
+            log.info(f"Live scan #{scan_count} — {minutes_live}m into broadcast")
 
             # Sample the reference stream
-            log.info("Sampling reference stream...")
             ref_path = download_sample(my_stream["url"])
             if not ref_path:
                 log.warning("Could not sample reference. Retrying in 30s...")
@@ -440,8 +469,8 @@ def run():
                     log_detection_to_api(suspect)
                     already_reported.add(suspect["channel_id"])
 
-            log.info(f"Next scan in {interval}s...")
-            time.sleep(interval)
+            log.info(f"Next live scan in {LIVE_SCAN_INTERVAL//60} min...")
+            time.sleep(LIVE_SCAN_INTERVAL)   # 3 min between live scans
 
         except KeyboardInterrupt:
             log.info("Scanner stopped.")

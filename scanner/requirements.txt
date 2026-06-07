@@ -1,10 +1,10 @@
 # ─────────────────────────────────────────────────────────────
-# Livestrym Scanner — requirements.txt
-# IMPORTANT: No psycopg2, no sqlalchemy, no fastapi
-# Scanner talks to API via HTTP only — no direct DB access
+# scanner/requirements.txt
+# LEAN — no psycopg2, no sqlalchemy, no fastapi, no uvicorn
+# Scanner calls API via HTTP only — zero direct DB access
 # ─────────────────────────────────────────────────────────────
 
-# ── HTTP — calls API endpoints ────────────────────────────────
+# ── HTTP ──────────────────────────────────────────────────────
 requests==2.32.3
 
 # ── YouTube API ───────────────────────────────────────────────
