@@ -599,6 +599,56 @@ def rotate_stream_key(token: str, db: Session = Depends(get_db)):
     return {"stream_key": user.stream_key,
             "message": "Stream key rotated. Update your encoder settings."}
 
+@app.get("/api/stream-status")
+def stream_status(token: str, db: Session = Depends(get_db)):
+    """
+    Returns live stream status for the dashboard.
+    Checks the most recent detection to infer if a broadcast is active.
+    In Sprint 2 this will use SRS on_publish state directly.
+    """
+    user = get_current_user(token, db)
+
+    # Get recent detections (last 24 hours) for this user
+    from datetime import timedelta
+    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    recent = db.query(Detection).filter(
+        Detection.owner_id == user.id,
+        Detection.detected_at >= since
+    ).order_by(Detection.detected_at.desc()).all()
+
+    # Total all-time detections
+    total = db.query(Detection).filter(
+        Detection.owner_id == user.id
+    ).count()
+
+    # Total unique pirate channels caught
+    unique_pirates = db.query(Detection.channel_id).filter(
+        Detection.owner_id == user.id,
+        Detection.channel_id != None
+    ).distinct().count()
+
+    # Most recent detection
+    last = recent[0] if recent else None
+
+    return {
+        "is_live":          False,   # Sprint 2: SRS will set this via on_publish
+        "title":            None,    # matches dashboard data.title
+        "stream_title":     None,
+        "stream_url":       user.channel_url,
+        "channel_id":       user.channel_id,
+        "org_name":         user.org_name,
+        "stream_key":       user.stream_key,
+        "tier":             user.tier.value,
+        "scan_count":       len(recent),   # matches dashboard data.scan_count
+        "stats": {
+            "total_detections":    total,
+            "detections_24h":      len(recent),
+            "unique_pirates":      unique_pirates,
+            "last_detected_at":    last.detected_at.isoformat() if last else None,
+            "last_pirate_channel": last.channel_name if last else None,
+        }
+    }
+
 # ── Detection Routes ──────────────────────────────────────────────────────────
 @app.post("/api/detections")
 def log_detection(
