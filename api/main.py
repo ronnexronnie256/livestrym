@@ -339,11 +339,44 @@ async def security_headers(request: Request, call_next):
 @app.on_event("startup")
 def startup():
     Base.metadata.create_all(bind=engine)
+    _run_migrations()
     log.info("Livestrym API started. Database ready.")
     # ── Seed admin account ────────────────────────────────────────────────────
     _seed_admin()
 
-def _seed_admin():
+def _run_migrations():
+    """
+    Safe additive column migrations.
+    Uses IF NOT EXISTS — safe to run on every startup.
+    Never drops or modifies existing data.
+    Add new ALTER TABLE lines here as schema grows.
+    """
+    import sqlalchemy as sa
+    migrations = [
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS stream_key VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS webhook_url VARCHAR",
+        "ALTER TABLE detections ADD COLUMN IF NOT EXISTS owner_id VARCHAR",
+        "ALTER TABLE detections ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR",
+        "ALTER TABLE detections ADD COLUMN IF NOT EXISTS reported BOOLEAN DEFAULT FALSE",
+    ]
+    db = SessionLocal()
+    try:
+        for sql in migrations:
+            try:
+                db.execute(sa.text(sql))
+                db.commit()
+            except Exception as e:
+                db.rollback()
+                log.debug(f"Migration note: {sql[:50]} — {e}")
+        log.info(f"Migrations complete — {len(migrations)} statements processed.")
+    except Exception as e:
+        log.error(f"Migration error: {e}")
+    finally:
+        db.close()
+
+
     """Creates the admin account on first startup if it doesn't exist.
     Uses ADMIN_EMAIL and ADMIN_PASSWORD from environment variables.
     Safe to call multiple times — skips if admin already exists.
@@ -357,6 +390,7 @@ def _seed_admin():
         if existing:
             log.info(f"Admin account already exists: {ADMIN_EMAIL}")
             return
+        import secrets as sec
         admin = User(
             id              = str(uuid.uuid4()),
             full_name       = "Livestrym Admin",
@@ -370,6 +404,7 @@ def _seed_admin():
             status          = StatusEnum.approved,
             is_active       = True,
             verified_at     = datetime.now(timezone.utc),
+            stream_key      = sec.token_urlsafe(32),
         )
         db.add(admin)
         db.commit()
@@ -474,6 +509,7 @@ def signup(data: SignupRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered.")
 
+    import secrets as sec
     user = User(
         full_name        = data.full_name.strip(),
         email            = data.email.lower().strip(),
@@ -483,6 +519,7 @@ def signup(data: SignupRequest, db: Session = Depends(get_db)):
         account_type     = data.account_type,
         tier             = TierEnum.free,
         status           = StatusEnum.pending,
+        stream_key       = sec.token_urlsafe(32),
     )
 
     # Business accounts go straight to pending payment
