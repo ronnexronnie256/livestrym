@@ -42,6 +42,10 @@ ADMIN_EMAIL     = os.getenv("ADMIN_EMAIL", "")
 SCANNER_SECRET  = os.getenv("SCANNER_SECRET", "")          # required — set in Railway env vars
 SENDGRID_KEY    = os.getenv("SENDGRID_API_KEY", "")
 FROM_EMAIL      = os.getenv("FROM_EMAIL", "hello@livestrym.io")
+# ── SRS Media Server ──────────────────────────────────────────────────────────
+SRS_INTERNAL_SECRET = os.getenv("SRS_INTERNAL_SECRET", "")
+SRS_API_URL         = os.getenv("SRS_API_URL", "http://srs.railway.internal:1985")
+HLS_BASE            = os.getenv("SRS_HLS_PATH", "/srs/objs/nginx/html")
 
 # ── Logging ───────────────────────────────────────────────────────────────────
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -89,21 +93,28 @@ class User(Base):
     is_active        = Column(Boolean, default=True)
     created_at       = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     verified_at      = Column(DateTime, nullable=True)
-    # ── Stream key (for SRS ingest — Sprint 2) ────────────────
+    # ── Stream key (for SRS ingest) ───────────────────────────
     stream_key       = Column(String, nullable=True,
                               default=lambda: __import__("secrets").token_urlsafe(32))
-    # ── Notification preferences ──────────────────────────────
+    # ── Scan configuration ────────────────────────────────────
+    scan_keywords    = Column(String, nullable=True)   # JSON array of keywords
+    scan_platforms   = Column(String, default='["youtube"]')  # JSON array
+    # ── Notification channels ─────────────────────────────────
     telegram_chat_id = Column(String, nullable=True)
     whatsapp_number  = Column(String, nullable=True)
     webhook_url      = Column(String, nullable=True)
+    email_alerts     = Column(Boolean, default=True)
     # ── Relationships ─────────────────────────────────────────
     detections       = relationship("Detection", back_populates="owner",
+                                    cascade="all, delete-orphan")
+    channels         = relationship("ProtectedChannel", back_populates="owner",
                                     cascade="all, delete-orphan")
 
 class Detection(Base):
     __tablename__ = "detections"
     id               = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     owner_id         = Column(String, ForeignKey("users.id"), nullable=True)
+    channel_ref_id   = Column(String, ForeignKey("protected_channels.id"), nullable=True)
     stream_url       = Column(String, nullable=False)
     stream_title     = Column(String, nullable=True)
     channel_name     = Column(String, nullable=True)
@@ -114,6 +125,48 @@ class Detection(Base):
     detected_at      = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     reported         = Column(Boolean, default=False)
     owner            = relationship("User", back_populates="detections")
+    channel          = relationship("ProtectedChannel", back_populates="detections")
+
+
+class ProtectedChannel(Base):
+    __tablename__ = "protected_channels"
+
+    id              = Column(String, primary_key=True,
+                             default=lambda: str(uuid.uuid4()))
+    owner_id        = Column(String, ForeignKey("users.id"),
+                             nullable=False, index=True)
+
+    # Platform identity
+    channel_id      = Column(String, nullable=False, index=True)
+    channel_name    = Column(String, nullable=False)
+    channel_url     = Column(String, nullable=True)
+
+    # SRS ingest — stream key rotates per broadcast
+    stream_key      = Column(String, nullable=True,
+                             default=lambda: __import__("secrets").token_urlsafe(32))
+
+    # Platform destination keys
+    youtube_key     = Column(String, nullable=True)
+    facebook_key    = Column(String, nullable=True)
+
+    # Scan config
+    keywords        = Column(String, default="[]")
+    scan_platforms  = Column(String, default='["youtube"]')
+
+    # Runtime state — updated by SRS webhooks
+    is_active       = Column(Boolean, default=True)
+    is_live         = Column(Boolean, default=False)
+    live_started_at = Column(DateTime, nullable=True)
+    srs_client_id   = Column(String, nullable=True)
+
+    added_at        = Column(DateTime,
+                             default=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    owner           = relationship("User", back_populates="channels")
+    detections      = relationship("Detection",
+                                   back_populates="channel",
+                                   cascade="all, delete-orphan")
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -342,7 +395,7 @@ def startup():
     _run_migrations()
     log.info("Livestrym API started. Database ready.")
     # ── Seed admin account ────────────────────────────────────────────────────
-   # _seed_admin()
+    _seed_admin()
 
 def _run_migrations():
     """
@@ -353,13 +406,22 @@ def _run_migrations():
     """
     import sqlalchemy as sa
     migrations = [
+        # ── users table additions ─────────────────────────────
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS stream_key VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR",
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS webhook_url VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_alerts BOOLEAN DEFAULT TRUE",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS scan_keywords VARCHAR",
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS scan_platforms VARCHAR DEFAULT '[\"youtube\"]'",
+        # ── detections table additions ────────────────────────
         "ALTER TABLE detections ADD COLUMN IF NOT EXISTS owner_id VARCHAR",
+        "ALTER TABLE detections ADD COLUMN IF NOT EXISTS channel_ref_id VARCHAR",
         "ALTER TABLE detections ADD COLUMN IF NOT EXISTS thumbnail_url VARCHAR",
         "ALTER TABLE detections ADD COLUMN IF NOT EXISTS reported BOOLEAN DEFAULT FALSE",
+        # ── protected_channels table — created by create_all() ─
+        # The ProtectedChannel model handles creation via create_all
+        # These alters run after create_all so are safe
     ]
     db = SessionLocal()
     try:
@@ -419,15 +481,246 @@ def _run_migrations():
 def health():
     return {"status": "ok", "service": "Livestrym API", "version": "1.0.0"}
 
-@app.get("/api/scanner/channels")
+# ── SRS Webhook Schemas ────────────────────────────────────────────────────────
+class SRSPublishPayload(BaseModel):
+    action:    str
+    client_id: str
+    ip:        str
+    vhost:     str
+    app:       str
+    stream:    str
+    param:     str = ""
+
+class SRSPlayPayload(BaseModel):
+    action:    str
+    client_id: str
+    ip:        str
+    vhost:     str
+    app:       str
+    stream:    str
+    param:     str = ""
+
+# ── SRS Helper ────────────────────────────────────────────────────────────────
+def _check_srs_secret(request: Request):
+    secret = request.headers.get("X-SRS-Secret", "")
+    if SRS_INTERNAL_SECRET and secret != SRS_INTERNAL_SECRET:
+        raise HTTPException(status_code=401, detail="Invalid SRS secret.")
+
+def _configure_forward(stream_key: str, channel: ProtectedChannel):
+    """Configure SRS to forward stream to YouTube / Facebook at runtime."""
+    destinations = []
+    if channel.youtube_key:
+        destinations.append(f"rtmp://a.rtmp.youtube.com/live2/{channel.youtube_key}")
+    if channel.facebook_key:
+        destinations.append(f"rtmps://live-api-s.facebook.com:443/rtmp/{channel.facebook_key}")
+    if not destinations:
+        log.info(f"No forward destinations for {channel.channel_name}")
+        return
+    try:
+        import httpx
+        for dest in destinations:
+            httpx.post(
+                f"{SRS_API_URL}/api/v1/vhosts/__defaultVhost__/forward",
+                json={"enabled": True, "destination": dest, "stream": stream_key},
+                timeout=5
+            )
+            log.info(f"Forward configured → {dest[:60]}")
+    except Exception as e:
+        log.warning(f"Forward config failed (SRS not yet deployed?): {e}")
+
+# ── SRS Webhook Routes ────────────────────────────────────────────────────────
+@app.post("/api/srs/on_publish")
+def srs_on_publish(
+    payload: SRSPublishPayload,
+    request: Request,
+    db:      Session = Depends(get_db)
+):
+    """
+    Called by SRS when encoder connects. Validates stream key.
+    Must respond within 5 seconds.
+    Returns {"code": 0} to allow, {"code": 403} to reject.
+    """
+    _check_srs_secret(request)
+
+    # Look up by ProtectedChannel stream key first
+    channel = db.query(ProtectedChannel).filter(
+        ProtectedChannel.stream_key == payload.stream,
+        ProtectedChannel.is_active  == True
+    ).first()
+
+    # Fallback: legacy User.stream_key
+    if not channel:
+        user = db.query(User).filter(
+            User.stream_key == payload.stream,
+            User.is_active  == True,
+            User.status     == StatusEnum.approved
+        ).first()
+        if not user:
+            log.warning(f"Rejected unknown stream key: {payload.stream[:8]}...")
+            return {"code": 403, "msg": "Invalid stream key"}
+        # Auto-create ProtectedChannel from User on first SRS connect
+        import json as _j
+        kws = _j.dumps([user.org_name, f"{user.org_name} live"])
+        channel = ProtectedChannel(
+            owner_id     = user.id,
+            channel_id   = user.channel_id or "",
+            channel_name = user.org_name or user.full_name,
+            channel_url  = user.channel_url or "",
+            stream_key   = payload.stream,
+            keywords     = user.scan_keywords or kws,
+        )
+        db.add(channel)
+
+    # Mark live
+    channel.is_live         = True
+    channel.live_started_at = datetime.now(timezone.utc)
+    channel.srs_client_id   = payload.client_id
+    db.commit()
+    log.info(f"STREAM STARTED: {channel.channel_name} (key: {payload.stream[:8]}...)")
+
+    # Configure forwarding to platforms
+    _configure_forward(payload.stream, channel)
+
+    # TODO Sprint 3: enqueue ARQ fingerprint build
+    # await arq_pool.enqueue_job("build_reference_fingerprint", channel.id)
+
+    return {"code": 0}
+
+
+@app.post("/api/srs/on_unpublish")
+def srs_on_unpublish(
+    payload: SRSPublishPayload,
+    request: Request,
+    db:      Session = Depends(get_db)
+):
+    """Called by SRS when encoder disconnects. Rotate stream key."""
+    _check_srs_secret(request)
+    import secrets as sec
+
+    channel = db.query(ProtectedChannel).filter(
+        ProtectedChannel.stream_key == payload.stream
+    ).first()
+
+    if channel:
+        channel.is_live       = False
+        channel.srs_client_id = None
+        channel.stream_key    = sec.token_urlsafe(32)
+        db.commit()
+        log.info(f"STREAM ENDED: {channel.channel_name}. Key rotated.")
+
+    # Also rotate legacy User stream key
+    user = db.query(User).filter(User.stream_key == payload.stream).first()
+    if user:
+        user.stream_key = sec.token_urlsafe(32)
+        db.commit()
+
+    return {"code": 0}
+
+
+@app.post("/api/srs/on_play")
+def srs_on_play(payload: SRSPlayPayload, request: Request):
+    """Viewer connected — logged for analytics."""
+    _check_srs_secret(request)
+    log.debug(f"Viewer: {payload.stream[:8]}... from {payload.ip}")
+    return {"code": 0}
+
+
+@app.post("/api/srs/on_stop")
+def srs_on_stop(payload: SRSPlayPayload, request: Request):
+    """Viewer disconnected."""
+    _check_srs_secret(request)
+    return {"code": 0}
+
+
+@app.get("/api/srs/health")
+def srs_health():
+    """Check SRS media server status. Returns live stream count."""
+    try:
+        import httpx
+        r = httpx.get(f"{SRS_API_URL}/api/v1/summaries/", timeout=3)
+        d = r.json()
+        return {
+            "srs_ok":         True,
+            "active_streams": d.get("data", {}).get("nb_publishers", 0),
+            "version":        d.get("data", {}).get("version", "unknown"),
+        }
+    except Exception as e:
+        return {
+            "srs_ok": False,
+            "error":  str(e),
+            "note":   "SRS service not yet deployed — see srs/ folder",
+        }
+
+
+@app.get("/api/channels")
+def get_channels(token: str, db: Session = Depends(get_db)):
+    """Get all protected channels for the logged-in user."""
+    user = get_current_user(token, db)
+    channels = db.query(ProtectedChannel).filter(
+        ProtectedChannel.owner_id  == user.id,
+        ProtectedChannel.is_active == True
+    ).all()
+    import json as _j
+    return [
+        {
+            "id":              c.id,
+            "channel_id":      c.channel_id,
+            "channel_name":    c.channel_name,
+            "channel_url":     c.channel_url,
+            "stream_key":      c.stream_key,
+            "is_live":         c.is_live,
+            "live_started_at": c.live_started_at.isoformat() if c.live_started_at else None,
+            "keywords":        _j.loads(c.keywords) if c.keywords else [],
+            "youtube_key":     "***" if c.youtube_key else None,
+            "facebook_key":    "***" if c.facebook_key else None,
+            "added_at":        c.added_at.isoformat(),
+        }
+        for c in channels
+    ]
+
+
+@app.post("/api/channels")
+def create_channel(
+    data: dict,
+    token: str,
+    db:   Session = Depends(get_db)
+):
+    """Add a new protected channel for the user."""
+    import json as _j, secrets as sec
+    user = get_current_user(token, db)
+
+    channel = ProtectedChannel(
+        owner_id     = user.id,
+        channel_id   = data.get("channel_id", "").strip(),
+        channel_name = data.get("channel_name", user.org_name).strip(),
+        channel_url  = data.get("channel_url", "").strip(),
+        stream_key   = sec.token_urlsafe(32),
+        youtube_key  = data.get("youtube_key", "").strip() or None,
+        facebook_key = data.get("facebook_key", "").strip() or None,
+        keywords     = _j.dumps(data.get("keywords", [user.org_name])),
+    )
+    db.add(channel)
+    db.commit()
+    log.info(f"Channel added: {channel.channel_name} for {user.email}")
+    return {
+        "id":         channel.id,
+        "stream_key": channel.stream_key,
+        "message":    f"Channel '{channel.channel_name}' added. "
+                      f"Point your encoder to: rtmps://ingest.livestrym.io:1935/live/{channel.stream_key}"
+    }
+
+
+
 def scanner_get_channels(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """Returns all active protected channels for the ARQ scanner worker.
-    Called every 5 minutes by the worker to build the channel registry.
-    Requires X-Scanner-Secret header.
     """
+    Returns all active protected channels for the scanner worker.
+    Uses each customer's own keywords, platforms, and notification config.
+    Called every scan cycle by the scanner.
+    """
+    import json as _json
     secret = request.headers.get("X-Scanner-Secret", "")
     if not SCANNER_SECRET or secret != SCANNER_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized.")
@@ -439,18 +732,45 @@ def scanner_get_channels(
 
     channels = []
     for user in users:
-        if user.channel_id and user.channel_id != "admin":
-            channels.append({
-                "channel_id":   user.channel_id,
-                "channel_name": user.org_name or user.full_name,
-                "owner_id":     user.id,
-                "channel_url":  user.channel_url or "",
-                "keywords":     [
-                    user.org_name,
-                    f"{user.org_name} live",
-                    f"{user.org_name} service",
-                ] if user.org_name else ["livestream"],
-            })
+        if not user.channel_id or user.channel_id == "admin":
+            continue
+
+        # Parse keywords — use customer's own or auto-generate from org_name
+        try:
+            keywords = _json.loads(user.scan_keywords) if user.scan_keywords else []
+        except Exception:
+            keywords = []
+
+        if not keywords:
+            # Auto-generate keywords from org name
+            name = user.org_name or ""
+            keywords = [name, f"{name} live", f"{name} service", f"{name} stream"]
+            keywords = [k for k in keywords if k.strip()]
+
+        # Parse notification config
+        notifications = {
+            "telegram_chat_id": user.telegram_chat_id,
+            "whatsapp_number":  user.whatsapp_number,
+            "webhook_url":      user.webhook_url,
+            "email":            user.email if user.email_alerts else None,
+        }
+
+        try:
+            platforms = _json.loads(user.scan_platforms) if user.scan_platforms else ["youtube"]
+        except Exception:
+            platforms = ["youtube"]
+
+        channels.append({
+            "channel_id":    user.channel_id,
+            "channel_name":  user.org_name or user.full_name,
+            "channel_url":   user.channel_url or "",
+            "owner_id":      user.id,
+            "owner_email":   user.email,
+            "keywords":      keywords[:5],  # max 5 per customer
+            "platforms":     platforms,
+            "notifications": notifications,
+            "tier":          user.tier.value,
+        })
 
     log.info(f"Scanner registry: {len(channels)} active channels")
     return channels
@@ -581,10 +901,28 @@ def login(data: LoginRequest, db: Session = Depends(get_db)):
 
 @app.get("/api/me")
 def me(token: str, db: Session = Depends(get_db)):
+    import json as _json
     user = get_current_user(token, db)
     detection_count = db.query(Detection).filter(
         Detection.owner_id == user.id
     ).count()
+
+    # Parse stored JSON fields
+    try:
+        keywords = _json.loads(user.scan_keywords) if user.scan_keywords else []
+    except Exception:
+        keywords = []
+    try:
+        platforms = _json.loads(user.scan_platforms) if user.scan_platforms else ["youtube"]
+    except Exception:
+        platforms = ["youtube"]
+
+    # Protection status — is this customer fully configured?
+    has_channel   = bool(user.channel_id)
+    has_alert     = bool(user.telegram_chat_id or user.whatsapp_number or user.email_alerts)
+    has_keywords  = len(keywords) > 0
+    setup_complete = has_channel and has_alert
+
     return {
         "id":              user.id,
         "full_name":       user.full_name,
@@ -596,13 +934,97 @@ def me(token: str, db: Session = Depends(get_db)):
         "account_type":    user.account_type,
         "status":          user.status.value,
         "stream_key":      user.stream_key,
-        "telegram_chat_id": user.telegram_chat_id,
-        "whatsapp_number": user.whatsapp_number,
-        "detection_count": detection_count,
         "created_at":      user.created_at.isoformat(),
+        # Scan config
+        "scan_keywords":   keywords,
+        "scan_platforms":  platforms,
+        # Notifications
+        "telegram_chat_id": user.telegram_chat_id,
+        "whatsapp_number":  user.whatsapp_number,
+        "webhook_url":      user.webhook_url,
+        "email_alerts":     user.email_alerts if user.email_alerts is not None else True,
+        # Stats
+        "detection_count":  detection_count,
+        # Onboarding status
+        "setup": {
+            "has_channel":    has_channel,
+            "has_alert":      has_alert,
+            "has_keywords":   has_keywords,
+            "complete":       setup_complete,
+            "steps_done":     sum([has_channel, has_alert, has_keywords]),
+            "steps_total":    3,
+        }
     }
 
 # ── User Settings Routes ──────────────────────────────────────────────────────
+class ProtectionSettings(BaseModel):
+    """Complete customer protection configuration."""
+    # Channel
+    channel_url:      Optional[str]       = None
+    channel_id:       Optional[str]       = None
+    # Scan config
+    scan_keywords:    Optional[list[str]] = None
+    scan_platforms:   Optional[list[str]] = None
+    # Notifications
+    telegram_chat_id: Optional[str]       = None
+    whatsapp_number:  Optional[str]       = None
+    webhook_url:      Optional[str]       = None
+    email_alerts:     Optional[bool]      = None
+
+@app.put("/api/me/settings")
+def update_settings(
+    data: ProtectionSettings,
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Master settings endpoint — updates all customer protection config.
+    Called by the dashboard settings page.
+    Every field is optional — only provided fields are updated.
+    """
+    user = get_current_user(token, db)
+    changed = []
+
+    if data.channel_url is not None:
+        user.channel_url = data.channel_url.strip()
+        changed.append("channel_url")
+    if data.channel_id is not None:
+        user.channel_id = data.channel_id.strip()
+        changed.append("channel_id")
+    if data.scan_keywords is not None:
+        import json as _json
+        # Always include org_name as first keyword
+        kws = [user.org_name] + [k.strip() for k in data.scan_keywords if k.strip()]
+        user.scan_keywords = _json.dumps(list(dict.fromkeys(kws)))  # dedupe
+        changed.append("scan_keywords")
+    if data.scan_platforms is not None:
+        import json as _json
+        user.scan_platforms = _json.dumps(data.scan_platforms)
+        changed.append("scan_platforms")
+    if data.telegram_chat_id is not None:
+        user.telegram_chat_id = data.telegram_chat_id.strip() or None
+        changed.append("telegram_chat_id")
+    if data.whatsapp_number is not None:
+        user.whatsapp_number = data.whatsapp_number.strip() or None
+        changed.append("whatsapp_number")
+    if data.webhook_url is not None:
+        user.webhook_url = data.webhook_url.strip() or None
+        changed.append("webhook_url")
+    if data.email_alerts is not None:
+        user.email_alerts = data.email_alerts
+        changed.append("email_alerts")
+
+    db.commit()
+    log.info(f"Settings updated for {user.email}: {changed}")
+    return {
+        "message": "Settings updated.",
+        "updated": changed,
+        "protection_active": bool(user.channel_id and (
+            user.telegram_chat_id or user.whatsapp_number or user.email_alerts
+        ))
+    }
+
+# Legacy endpoint — keep for backward compat
 class NotificationSettings(BaseModel):
     telegram_chat_id: Optional[str] = None
     whatsapp_number:  Optional[str] = None
@@ -614,7 +1036,7 @@ def update_notifications(
     token: str,
     db: Session = Depends(get_db)
 ):
-    """Update notification channel preferences."""
+    """Kept for backward compatibility — use /api/me/settings instead."""
     user = get_current_user(token, db)
     if data.telegram_chat_id is not None:
         user.telegram_chat_id = data.telegram_chat_id
@@ -640,43 +1062,58 @@ def rotate_stream_key(token: str, db: Session = Depends(get_db)):
 def stream_status(token: str, db: Session = Depends(get_db)):
     """
     Returns live stream status for the dashboard.
-    Checks the most recent detection to infer if a broadcast is active.
-    In Sprint 2 this will use SRS on_publish state directly.
+    is_live is driven by SRS on_publish / on_unpublish webhooks.
+    When SRS is deployed, this reflects actual encoder connection state.
     """
     user = get_current_user(token, db)
 
-    # Get recent detections (last 24 hours) for this user
+    # Real live state — set by SRS on_publish webhook
+    active_channel = db.query(ProtectedChannel).filter(
+        ProtectedChannel.owner_id == user.id,
+        ProtectedChannel.is_live  == True
+    ).first()
+
+    is_live    = active_channel is not None
+    live_title = active_channel.channel_name if active_channel else None
+    live_since = (active_channel.live_started_at.isoformat()
+                  if active_channel and active_channel.live_started_at else None)
+
+    # Get user's channels
+    channels = db.query(ProtectedChannel).filter(
+        ProtectedChannel.owner_id  == user.id,
+        ProtectedChannel.is_active == True
+    ).all()
+
+    # Detection stats
     from datetime import timedelta
-    since = datetime.now(timezone.utc) - timedelta(hours=24)
+    since  = datetime.now(timezone.utc) - timedelta(hours=24)
     recent = db.query(Detection).filter(
-        Detection.owner_id == user.id,
+        Detection.owner_id    == user.id,
         Detection.detected_at >= since
     ).order_by(Detection.detected_at.desc()).all()
 
-    # Total all-time detections
-    total = db.query(Detection).filter(
-        Detection.owner_id == user.id
-    ).count()
-
-    # Total unique pirate channels caught
+    total          = db.query(Detection).filter(Detection.owner_id == user.id).count()
     unique_pirates = db.query(Detection.channel_id).filter(
-        Detection.owner_id == user.id,
+        Detection.owner_id  == user.id,
         Detection.channel_id != None
     ).distinct().count()
-
-    # Most recent detection
     last = recent[0] if recent else None
 
     return {
-        "is_live":          False,   # Sprint 2: SRS will set this via on_publish
-        "title":            None,    # matches dashboard data.title
-        "stream_title":     None,
-        "stream_url":       user.channel_url,
-        "channel_id":       user.channel_id,
-        "org_name":         user.org_name,
-        "stream_key":       user.stream_key,
-        "tier":             user.tier.value,
-        "scan_count":       len(recent),   # matches dashboard data.scan_count
+        # Live state — powered by SRS webhooks
+        "is_live":     is_live,
+        "title":       live_title,
+        "live_since":  live_since,
+        # Channel info
+        "stream_url":  user.channel_url,
+        "channel_id":  user.channel_id,
+        "org_name":    user.org_name,
+        "stream_key":  user.stream_key,
+        "tier":        user.tier.value,
+        "channels":    len(channels),
+        # SRS ingest endpoint (shown in encoder setup)
+        "ingest_url":  f"rtmps://ingest.livestrym.io:1935/live/{user.stream_key}" if user.stream_key else None,
+        "scan_count":  len(recent),
         "stats": {
             "total_detections":    total,
             "detections_24h":      len(recent),
@@ -685,6 +1122,7 @@ def stream_status(token: str, db: Session = Depends(get_db)):
             "last_pirate_channel": last.channel_name if last else None,
         }
     }
+
 
 # ── Detection Routes ──────────────────────────────────────────────────────────
 @app.post("/api/detections")
