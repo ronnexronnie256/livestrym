@@ -395,7 +395,7 @@ def startup():
     _run_migrations()
     log.info("Livestrym API started. Database ready.")
     # ── Seed admin account ────────────────────────────────────────────────────
-    _seed_admin()
+   # _seed_admin()
 
 def _run_migrations():
     """
