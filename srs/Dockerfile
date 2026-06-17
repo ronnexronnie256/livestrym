@@ -5,12 +5,12 @@
 # ─────────────────────────────────────────────────────────────
 FROM ossrs/srs:6
 
-# Copy production config
-COPY conf/srs.conf /usr/local/srs/conf/srs.conf
+# Copy production config (Notice the added 'srs/' prefix)
+COPY srs/conf/srs.conf /usr/local/srs/conf/srs.conf
 
-# Copy TLS certificates for RTMPS
-COPY conf/server.crt /usr/local/srs/conf/server.crt
-COPY conf/server.key /usr/local/srs/conf/server.key
+# Copy TLS certificates for RTMPS (Notice the added 'srs/' prefix)
+COPY srs/conf/server.crt /usr/local/srs/conf/server.crt
+COPY srs/conf/server.key /usr/local/srs/conf/server.key
 
 # Secure the private key permissions (required by SRS/OpenSSL)
 RUN chmod 600 /usr/local/srs/conf/server.key
