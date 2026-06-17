@@ -6,7 +6,7 @@
 FROM ossrs/srs:6
 
 # Copy production config
-COPY conf/srs.conf /usr/local/srs/conf/srs.conf
+#COPY conf/srs.conf /usr/local/srs/conf/srs.conf
 
 # Copy TLS certificates for RTMPS
 # These are generated in the cert-generation step
