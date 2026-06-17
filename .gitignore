@@ -11,6 +11,3 @@ data/
 dist/
 build/
 *.egg-info/
-
-srs/conf/server.crt
-srs/conf/server.key

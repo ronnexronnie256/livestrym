@@ -6,13 +6,14 @@
 FROM ossrs/srs:6
 
 # Copy production config
-#COPY conf/srs.conf /usr/local/srs/conf/srs.conf
+COPY conf/srs.conf /usr/local/srs/conf/srs.conf
 
 # Copy TLS certificates for RTMPS
-# These are generated in the cert-generation step
-# and stored as Railway volume secrets — never in git
-#COPY conf/server.crt /usr/local/srs/conf/server.crt
-#COPY conf/server.key /usr/local/srs/conf/server.key
+COPY conf/server.crt /usr/local/srs/conf/server.crt
+COPY conf/server.key /usr/local/srs/conf/server.key
+
+# Secure the private key permissions (required by SRS/OpenSSL)
+RUN chmod 600 /usr/local/srs/conf/server.key
 
 # Ports:
 # 1935 — RTMPS ingest (public, TCP) — encoders connect here
