@@ -3,10 +3,10 @@
   "build": {
     "builder": "DOCKERFILE",
     "dockerfilePath": "Dockerfile",
-    "rootDirectory": "srs"
+    "rootDirectory": "nginx"
   },
   "deploy": {
-    "startCommand": "/usr/local/srs/objs/srs -c /usr/local/srs/conf/srs.conf",
+    "startCommand": "nginx -g 'daemon off;'",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
