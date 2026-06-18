@@ -1,9 +1,15 @@
 #!/bin/bash
 
-# Start NGINX. 
-# By NOT using 'daemon off;', NGINX will automatically detach and run safely in the background.
+# 1. Clean up stale PID files (Crucial for Docker restarts)
+rm -f /run/nginx.pid
+rm -f /var/run/nginx.pid
+
+# 2. Ensure log directories exist
+mkdir -p /var/log/nginx
+mkdir -p /var/run
+
+# 3. Start NGINX
 /usr/sbin/nginx
 
-# Start SRS in the foreground. 
-# The 'exec' command makes SRS the main process (PID 1) so Railway can monitor it.
+# 4. Start SRS in the foreground
 exec /usr/local/srs/objs/srs -c /usr/local/srs/conf/srs.conf
